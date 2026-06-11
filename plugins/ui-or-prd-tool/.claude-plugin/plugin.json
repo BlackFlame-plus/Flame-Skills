@@ -1,6 +1,6 @@
 {
-  "name": "front-skills",
-  "description": "Frontend workflow skills for Claude Code: SEO, Apifox API method generation, and Figma UI implementation.",
+  "name": "ui-or-prd-tool",
+  "description": "Frontend UI and PRD workflow skills for Figma-driven implementation and Lanhu requirements retrieval.",
   "version": "1.0.0",
   "author": {
     "name": "liuzhengri"

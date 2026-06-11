@@ -1,0 +1,10 @@
+{
+  "name": "seo-tool",
+  "description": "Frontend SEO workflow skill for Claude Code.",
+  "version": "1.0.0",
+  "author": {
+    "name": "liuzhengri"
+  },
+  "homepage": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
+  "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+}

@@ -8,10 +8,32 @@
   },
   "plugins": [
     {
-      "name": "front-skills",
-      "displayName": "Front Skills",
-      "source": "./plugins/front-skills",
-      "description": "Frontend workflow skills for SEO, Apifox API method generation, and Figma UI implementation.",
+      "name": "seo-tool",
+      "displayName": "SEO Tool",
+      "source": "./plugins/seo-tool",
+      "description": "Frontend SEO workflow skill for metadata, crawlable links, semantic headings, images, pagination, canonical URLs, structured data, i18n SEO values, and SSR SEO loading.",
+      "version": "1.0.0",
+      "author": {
+        "name": "liuzhengri"
+      },
+      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+    },
+    {
+      "name": "ui-or-prd-tool",
+      "displayName": "UI or PRD Tool",
+      "source": "./plugins/ui-or-prd-tool",
+      "description": "Frontend UI and PRD workflow skills for Figma context retrieval, design-to-code implementation, Playwright visual verification, and Lanhu requirements retrieval.",
+      "version": "1.0.0",
+      "author": {
+        "name": "liuzhengri"
+      },
+      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+    },
+    {
+      "name": "api-tool",
+      "displayName": "API Tool",
+      "source": "./plugins/api-tool",
+      "description": "Frontend API workflow skill for turning Apifox endpoint definitions into request methods, TypeScript request/response types, and mock data.",
       "version": "1.0.0",
       "author": {
         "name": "liuzhengri"
