@@ -1,0 +1,22 @@
+{
+  "$schema": "https://code.claude.com/schemas/plugin-marketplace.json",
+  "name": "front-skills-market",
+  "description": "JcCode frontend Claude Code skills marketplace.",
+  "version": "1.0.0",
+  "owner": {
+    "name": "liuzhengri"
+  },
+  "plugins": [
+    {
+      "name": "front-skills",
+      "displayName": "Front Skills",
+      "source": "./plugins/front-skills",
+      "description": "Frontend workflow skills for SEO, Apifox API method generation, and Figma UI implementation.",
+      "version": "1.0.0",
+      "author": {
+        "name": "liuzhengri"
+      },
+      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+    }
+  ]
+}
