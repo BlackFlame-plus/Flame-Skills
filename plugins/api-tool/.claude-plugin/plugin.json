@@ -1,0 +1,10 @@
+{
+  "name": "api-tool",
+  "description": "Frontend API workflow skill for generating request methods from Apifox.",
+  "version": "1.0.0",
+  "author": {
+    "name": "liuzhengri"
+  },
+  "homepage": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
+  "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+}
