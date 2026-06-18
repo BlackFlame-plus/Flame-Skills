@@ -39,6 +39,17 @@
         "name": "liuzhengri"
       },
       "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+    },
+    {
+      "name": "work-tool",
+      "displayName": "Work Tool",
+      "source": "./plugins/work-tool",
+      "description": "工作台工具集，包含 Jira 工时表周报生成等功能",
+      "version": "1.0.0",
+      "author": {
+        "name": "liuzhengri"
+      },
+      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
     }
   ]
 }
