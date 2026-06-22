@@ -15,17 +15,16 @@ description: Jira工时表周报生成工具。当用户发送周报相关需求
 
 ## 数据获取流程
 
-### 步骤1：打开工时表
-1. 直接使用 Playwright 打开固定链接：`https://jira.jctrans.com/secure/shdsd-TimeWise-TimeSheet.jspa`
-2. 提示用户："请登录后告诉我"
-3. 等待用户确认登录完成
-
-### 步骤2：打开并登录
-1. 使用 Playwright 打开固定链接：`https://jira.jctrans.com/secure/shdsd-TimeWise-TimeSheet.jspa`
+### 步骤1：静默打开页面（无头模式）
+1. 使用 Playwright 以**无头模式**（headless）打开固定链接：`https://jira.jctrans.com/secure/shdsd-TimeWise-TimeSheet.jspa`
 2. 获取页面快照，检查是否显示登录界面（如用户名输入框、登录按钮等）
-3. 如判断为需登录，提示用户："请登录后告诉我"
-4. 如判断为已登录（页面显示用户信息或工时表内容），继续下一步
-5. 等待用户确认登录完成后，获取完整页面数据
+
+### 步骤2：检测登录状态
+1. 如判断为**已登录**（页面显示用户信息或工时表内容），直接继续步骤3
+2. 如判断为**需登录**，则**弹出可见浏览器**（关闭无头模式），提示用户："请登录，登录完成后告诉我"
+3. 等待用户确认登录完成后，切换回无头模式继续
+
+### 步骤3：读取工时数据
 
 ### 步骤3：读取工时数据
 1. 获取页面快照（browser_snapshot）
