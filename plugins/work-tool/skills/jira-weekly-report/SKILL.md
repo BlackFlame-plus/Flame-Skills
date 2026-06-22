@@ -125,4 +125,10 @@ description: Jira工时表周报生成工具。当用户发送周报相关需求
 - `jira_weekly_report_recipients`: 汇报对象
 
 ## 输出
-直接输出周报文案 markdown 格式，在对话中展示，不生成文件。
+生成 `.doc` 格式文件，使用 `document-skills:docx` skill 生成。
+
+### 输出流程
+1. 使用 `document-skills:docx` skill 生成周报文档
+2. 按模板生成周报内容
+3. 保存为 `周报_[姓名]_[日期].doc`
+4. 告知用户文件路径
