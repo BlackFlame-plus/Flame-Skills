@@ -32,7 +32,7 @@ except ImportError:
 
 # 东八区时区（北京时间）
 CHINA_TZ = timezone(timedelta(hours=8))
-from urllib.parse import urlparse
+from urllib.parse import urlparse, unquote
 from email.utils import parsedate_to_datetime
 
 # 元数据缓存配置（基于版本号的永久缓存）
@@ -3859,14 +3859,19 @@ async def screenshot_page_internal(resource_dir: str, page_names: List[str], out
     cached_results = []
     
     for page_name in page_names:
-        safe_name = re.sub(r'[^\w\s-]', '_', page_name)
+        # URL 解码 + safe_name：避免文件名被 URL 编码后两端不一致
+        # 触发场景：当 page_name 是 URL 编码形式的 filename（如 "jc%E4%BA%91-..."）
+        # 若不解码，保存和读取的 safe_name 不一致（虽然我们后面会读到内存，但
+        # 仍需要保证与磁盘上已有缓存文件的命名规则一致）
+        decoded_name = unquote(page_name) if page_name else page_name
+        safe_name = re.sub(r'[^\w\s-]', '_', decoded_name)
         screenshot_file = output_path / f"{safe_name}.png"
         text_file = output_path / f"{safe_name}.txt"
         styles_file = output_path / f"{safe_name}_styles.json"
         annotations_file = output_path / f"{safe_name}_annotations.json"
-        
+
         # 如果版本相同且文件存在，复用缓存
-        if (version_id and cached_version == version_id and 
+        if (version_id and cached_version == version_id and
             screenshot_file.exists() and annotations_file.exists()):
             # 读取缓存的文本内容
             page_text = ""
@@ -3875,7 +3880,7 @@ async def screenshot_page_internal(resource_dir: str, page_names: List[str], out
                     page_text = text_file.read_text(encoding='utf-8')
                 except Exception:
                     page_text = "(Cached - text not available)"
-            
+
             # 读取缓存的样式信息
             page_design_info = None
             if styles_file.exists():
@@ -3892,11 +3897,21 @@ async def screenshot_page_internal(resource_dir: str, page_names: List[str], out
                         page_annotations = json.load(af)
                 except Exception:
                     pass
-            
+
+            # ⚠️ 关键修复：缓存命中时直接把 PNG 读到 base64，
+            # 避免 cleanup 后 MCP 框架尝试读盘导致 FileNotFoundError
+            cached_base64 = None
+            try:
+                cached_base64 = base64.b64encode(screenshot_file.read_bytes()).decode('utf-8')
+            except Exception:
+                cached_base64 = None
+
             cached_results.append({
                 'page_name': page_name,
                 'success': True,
                 'screenshot_path': str(screenshot_file),
+                'base64': cached_base64,
+                'mime_type': 'image/png',
                 'page_text': page_text if page_text else "(Cached result)",
                 'page_design_info': page_design_info,
                 'page_annotations': page_annotations,
@@ -3931,10 +3946,12 @@ async def screenshot_page_internal(resource_dir: str, page_names: List[str], out
 
         for page_name in pages_to_render:
             try:
-                # 查找HTML文件
+                # 查找HTML文件（同时尝试 URL 编码/解码两种形式）
                 html_file = None
+                decoded_page_name = unquote(page_name) if page_name else page_name
                 for f in Path(resource_dir).glob("*.html"):
-                    if f.stem == page_name:
+                    f_stem_decoded = unquote(f.stem) if f.stem else f.stem
+                    if f.stem == page_name or f_stem_decoded == decoded_page_name or f.stem == decoded_page_name:
                         html_file = f.name
                         break
 
@@ -4173,8 +4190,8 @@ async def screenshot_page_internal(resource_dir: str, page_names: List[str], out
                     };
                 }''')
 
-                # 截图
-                safe_name = re.sub(r'[^\w\s-]', '_', page_name)
+                # 截图（使用与上面 cache 分支一致的 safe_name 计算方式：先 URL 解码）
+                safe_name = re.sub(r'[^\w\s-]', '_', decoded_page_name)
                 screenshot_path = output_path / f"{safe_name}.png"
                 text_path = output_path / f"{safe_name}.txt"
                 styles_path = output_path / f"{safe_name}_styles.json"
@@ -5003,8 +5020,37 @@ async def lanhu_get_ai_analyze_page_result(
         # 根据mode决定是否添加截图
         if not is_text_only:
             # FULL模式：先添加所有截图
+            # ⚠️ 必须在 cleanup 之前把文件读到内存（base64/bytes）
+            # 否则 cleanup 后 MCP 框架调用 Image.to_image_content() 时会
+            # 触发 FileNotFoundError（[Errno 2] No such file or directory）
             for r in success_results:
-                if 'screenshot_path' in r:
+                img_added = False
+                # 优先使用 render 阶段直接返回的 base64（无需读盘）
+                if 'base64' in r and r['base64']:
+                    try:
+                        img_bytes = base64.b64decode(r['base64'])
+                        img_fmt = (r.get('mime_type') or 'image/png').split('/')[-1]
+                        content.append(Image(data=img_bytes, format=img_fmt))
+                        img_added = True
+                    except Exception:
+                        img_added = False
+
+                # 降级：缓存命中或 base64 缺失时，从磁盘读取到内存
+                if not img_added and 'screenshot_path' in r:
+                    try:
+                        img_path = Path(r['screenshot_path'])
+                        if img_path.exists():
+                            img_bytes = img_path.read_bytes()
+                            # 简单根据扩展名推断 format
+                            ext = img_path.suffix.lstrip('.').lower() or 'png'
+                            content.append(Image(data=img_bytes, format=ext))
+                            img_added = True
+                    except Exception:
+                        img_added = False
+
+                # 双重降级：保留 path，让 MCP 框架在 cleanup 之后尝试读取
+                # （仅在上述全部失败时使用，可能触发 FileNotFoundError）
+                if not img_added and 'screenshot_path' in r:
                     content.append(Image(path=r['screenshot_path']))
 
         # Add all text content (格式根据mode不同)
@@ -5797,8 +5843,37 @@ async def lanhu_get_ai_analyze_design_result(
         content.append(summary_text)
 
         # 添加成功的截图
+        # ⚠️ 必须在 cleanup 之前把文件读到内存（base64/bytes）
+        # 否则 cleanup 后 MCP 框架调用 Image.to_image_content() 时会
+        # 触发 FileNotFoundError（[Errno 2] No such file or directory）
         for r in image_results:
-            if r['success'] and 'screenshot_path' in r:
+            if not r.get('success'):
+                continue
+            img_added = False
+            # 优先使用 base64（如果返回了）
+            if 'base64' in r and r['base64']:
+                try:
+                    img_bytes = base64.b64decode(r['base64'])
+                    img_fmt = (r.get('mime_type') or 'image/png').split('/')[-1]
+                    content.append(Image(data=img_bytes, format=img_fmt))
+                    img_added = True
+                except Exception:
+                    img_added = False
+
+            # 降级：从磁盘读取到内存
+            if not img_added and 'screenshot_path' in r:
+                try:
+                    img_path = Path(r['screenshot_path'])
+                    if img_path.exists():
+                        img_bytes = img_path.read_bytes()
+                        ext = img_path.suffix.lstrip('.').lower() or 'png'
+                        content.append(Image(data=img_bytes, format=ext))
+                        img_added = True
+                except Exception:
+                    img_added = False
+
+            # 双重降级
+            if not img_added and 'screenshot_path' in r:
                 content.append(Image(path=r['screenshot_path']))
 
         # ===== 自动清理：keep_raw_data=False 时删除原始资源 =====
