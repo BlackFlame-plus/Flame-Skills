@@ -66,20 +66,71 @@ from playwright.async_api import async_playwright
 # 创建FastMCP服务器
 mcp = FastMCP("Lanhu Axure Extractor")
 
-# 全局配置
-DEFAULT_COOKIE = "your_lanhu_cookie_here"  # 请替换为你的蓝湖Cookie，从浏览器开发者工具中获取
+# ==================== 配置校验（延迟到工具调用时） ====================
+# 设计目的：让 MCP 即使没有 .env 文件也能正常启动，避免用户因为忘建 .env 就连不上 MCP。
+# 真正检查推迟到首次调用需要 cookie 的工具时，缺失则返回清晰的中文引导。
+DEFAULT_COOKIE = "your_lanhu_cookie_here"  # 占位符（用于检测是否已配置）
+DEFAULT_FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-key-here"
 
-# 从环境变量读取Cookie，如果没有则使用默认值
-COOKIE = os.getenv("LANHU_COOKIE", DEFAULT_COOKIE)
+# 从环境变量读取，允许为空字符串（推迟到使用时校验）
+COOKIE = (os.getenv("LANHU_COOKIE") or "").strip()
+DDS_COOKIE = (os.getenv("DDS_COOKIE") or "").strip() or COOKIE
+FEISHU_WEBHOOK_URL = (os.getenv("FEISHU_WEBHOOK_URL") or "").strip() or DEFAULT_FEISHU_WEBHOOK
 
+
+class ConfigurationError(Exception):
+    """MCP 配置缺失异常。message 面向用户，setup_guide 提供结构化引导信息。"""
+    def __init__(self, message: str, setup_guide: dict = None):
+        self.setup_guide = setup_guide or {"status": "config_missing", "message": message}
+        super().__init__(message)
+
+
+def _is_cookie_unset(cookie: str) -> bool:
+    """判断 LANHU_COOKIE 是否为未配置的占位符。"""
+    if not cookie:
+        return True
+    if cookie == DEFAULT_COOKIE:
+        return True
+    # 兜底：任何形如 "your_xxx_here" 的占位符
+    if "your_" in cookie and "_here" in cookie:
+        return True
+    return False
+
+
+def check_required_config() -> "Optional[ConfigurationError]":
+    """检查必需配置。
+
+    返回 None 表示通过；返回 ConfigurationError 表示缺失（带 setup_guide）。
+
+    设计目的：MCP 启动时不强依赖 .env，仅在首次调用需要 cookie 的工具时检查。
+    调用方应捕获 ConfigurationError 并把 setup_guide 作为工具结果返回给用户。
+    """
+    if _is_cookie_unset(COOKIE):
+        env_path = Path(__file__).parent / '.env'
+        example_path = env_path.parent / '.env.example'
+        guide = {
+            "status": "config_missing",
+            "missing": ["LANHU_COOKIE"],
+            "env_path": str(env_path),
+            "example_path": str(example_path),
+            "tutorial_link": "https://github.com/lanhu-mcp/lanhu-mcp/blob/main/GET-COOKIE-TUTORIAL.md",
+        }
+        message = (
+            "🔧 蓝湖 MCP 还未配置 LANHU_COOKIE，请按以下步骤完成初始化：\n"
+            f"   1. 复制模板：cp \"{example_path}\" \"{env_path}\"\n"
+            f"   2. 编辑 \"{env_path}\"，把 LANHU_COOKIE 改成你的真实 Cookie\n"
+            "      （替换 your_lanhu_cookie_here，Cookie 获取方法见教程）\n"
+            "   3. 重启 Claude Code / Cursor 让新配置生效\n"
+            f"   详细教程：{guide['tutorial_link']}"
+        )
+        return ConfigurationError(message, guide)
+    return None
+
+
+# 全局配置（不需要校验的部分）
 BASE_URL = "https://lanhuapp.com"
 DDS_BASE_URL = "https://dds.lanhuapp.com"
 CDN_URL = "https://axure-file.lanhuapp.com"
-DDS_COOKIE = os.getenv("DDS_COOKIE", COOKIE)
-
-# 飞书机器人Webhook配置（支持环境变量）
-DEFAULT_FEISHU_WEBHOOK = "https://open.feishu.cn/open-apis/bot/v2/hook/your-webhook-key-here"
-FEISHU_WEBHOOK_URL = os.getenv("FEISHU_WEBHOOK_URL", DEFAULT_FEISHU_WEBHOOK)
 
 # 数据存储目录
 DATA_DIR = Path(os.getenv("DATA_DIR", "./data"))
@@ -2464,6 +2515,11 @@ class LanhuExtractor:
     CACHE_META_FILE = ".lanhu_cache.json"  # 缓存元数据文件名
 
     def __init__(self):
+        # 延迟校验：MCP 启动时不强求 .env 文件存在
+        # 缺失时抛出 ConfigurationError（外层工具会捕获并返回 setup guide）
+        config_error = check_required_config()
+        if config_error is not None:
+            raise config_error
         headers = {
             "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
             "Referer": "https://lanhuapp.com/web/",
@@ -4280,6 +4336,10 @@ async def lanhu_resolve_invite_link(
     Returns:
         Resolved URL and parsed parameters
     """
+    # 延迟配置检查：此工具不创建 LanhuExtractor，需要单独检查 cookie
+    config_error = check_required_config()
+    if config_error is not None:
+        return config_error.setup_guide
     try:
         # 解析Cookie字符串为playwright格式
         cookies = []
@@ -6833,21 +6893,10 @@ async def lanhu_get_members(
 
 
 if __name__ == "__main__":
-    # 运行MCP服务器
-    # 默认使用HTTP传输；设置 MCP_TRANSPORT=stdio 时可由MCP客户端按需拉起。
-    MCP_TRANSPORT = os.getenv("MCP_TRANSPORT", "http").lower()
-    if MCP_TRANSPORT == "stdio":
-        mcp.run(transport="stdio")
-    else:
-        SERVER_HOST = os.getenv("SERVER_HOST", "0.0.0.0")
-        SERVER_PORT = int(os.getenv("SERVER_PORT", "8000"))
-        mcp_url = f"http://localhost:{SERVER_PORT}/mcp"
-        print(f"\nCursor MCP 配置示例（端口来自 .env 的 SERVER_PORT={SERVER_PORT}）：")
-        print("{")
-        print('  "mcpServers": {')
-        print('    "lanhu": {')
-        print(f'      "url": "{mcp_url}?role=Developer&name=YourName"')
-        print("    }")
-        print("  }")
-        print("}\n")
-        mcp.run(transport="http", path="/mcp", host=SERVER_HOST, port=SERVER_PORT)
+    # 强制 stdio 模式运行
+    # 设计原因：
+    #   1) 本 MCP 设计为 stdio 模式被 .mcp.json 拉起（Claude Code / Cursor 都用 stdio）
+    #   2) HTTP 模式曾导致端口冲突、与 stdio 配置不兼容等坑
+    #   3) 强制 stdio 简化部署、避免误启动 HTTP 服务
+    # 如需 HTTP 模式，请用 fastmcp 直接调用，不要用此脚本。
+    mcp.run(transport="stdio")
