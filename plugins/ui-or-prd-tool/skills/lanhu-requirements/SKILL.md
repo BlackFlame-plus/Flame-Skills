@@ -69,7 +69,7 @@ lanhu_get_ai_analyze_page_result(
     url=...,
     page_names=...,
     mode="full",
-    output_dir=".claude/lanhu",  # 指定项目内缓存目录
+    # output_dir 默认是 .claude/lanhu（工作目录下，gitignored），无需显式传
     keep_raw_data=False           # 默认False，分析完删除
 )
 ```

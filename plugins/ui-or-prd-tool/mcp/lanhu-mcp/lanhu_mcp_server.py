@@ -105,6 +105,20 @@ def check_required_config() -> "Optional[ConfigurationError]":
     设计目的：MCP 启动时不强依赖 .env，仅在首次调用需要 cookie 的工具时检查。
     调用方应捕获 ConfigurationError 并把 setup_guide 作为工具结果返回给用户。
     """
+
+
+def _get_default_output_dir() -> Path:
+    """默认缓存目录：工作目录下的 .claude/lanhu。
+
+    选这个路径的原因：
+    1) 项目本地，不污染全局
+    2) .claude/ 通常在 .gitignore 里（不污染 git 状态）
+    3) 与 Claude Code / Cursor 的约定一致
+    4) 工具内部有 keep_raw_data=False 自动清理，分析完即删
+
+    如果调用方显式传了 output_dir，则优先用调用方的。
+    """
+    return Path.cwd() / '.claude' / 'lanhu'
     if _is_cookie_unset(COOKIE):
         env_path = Path(__file__).parent / '.env'
         example_path = env_path.parent / '.env.example'
@@ -4845,7 +4859,7 @@ async def lanhu_get_ai_analyze_page_result(
         page_names: Annotated[Union[str, List[str]], "Page name(s) to analyze. Use 'all' for all pages, single name like '退款流程', or list like ['退款流程', '用户中心']. Get exact names from lanhu_get_pages first!"],
         mode: Annotated[str, "Analysis mode: 'text_only' (fast global scan, text only for overview) or 'full' (detailed analysis with images+text). Default: 'full'"] = "full",
         analysis_mode: Annotated[str, "Analysis perspective (MUST be chosen by user after STAGE 1): 'developer' (detailed for coding), 'tester' (test scenarios/validation), 'explorer' (quick overview for review). Default: 'developer'"] = "developer",
-        output_dir: Annotated[Optional[str], "Output directory for downloaded resources. Default: use internal DATA_DIR"] = None,
+        output_dir: Annotated[Optional[str], "Output directory for downloaded resources. Default: '.claude/lanhu' under working directory (auto-gitignored, self-cleaning)"] = None,
         keep_raw_data: Annotated[bool, "Whether to keep raw Axure data after analysis. Default: False (auto-cleanup)"] = False,
         ctx: Context = None
 ) -> List[Union[str, Image]]:
@@ -4898,8 +4912,8 @@ async def lanhu_get_ai_analyze_page_result(
         params = extractor.parse_url(url)
         doc_id = params['doc_id']
 
-        # 设置输出目录（参数化，支持调用方指定）
-        base_dir = Path(output_dir) if output_dir else DATA_DIR
+        # 设置输出目录（参数化，支持调用方指定；默认 .claude/lanhu 在工作目录下）
+        base_dir = Path(output_dir) if output_dir else _get_default_output_dir()
         resource_dir = str(base_dir / f"axure_extract_{doc_id[:8]}")
         screenshot_dir = str(base_dir / f"axure_extract_{doc_id[:8]}_screenshots")
 
@@ -5369,7 +5383,7 @@ async def lanhu_get_designs(
 async def lanhu_get_ai_analyze_design_result(
         url: Annotated[str, "Lanhu URL WITHOUT docId (indicates UI design project). Example: https://lanhuapp.com/web/#/item/project/stage?tid=xxx&pid=xxx. Required param: pid. tid is optional. Supports detailDetach format: ?pid=xxx&image_id=xxx"],
         design_names: Annotated[Union[str, List[str]], "Design name(s) or index number(s). 'all' = all designs. Number (e.g. 6) = the 6th item in lanhu_get_designs list (by 'index' field), NOT by name prefix. Exact name (e.g. '6_friend页_挂件墙') = match by full name. Get names/index from lanhu_get_designs first."],
-        output_dir: Annotated[Optional[str], "Output directory for downloaded resources. Default: use internal DATA_DIR"] = None,
+        output_dir: Annotated[Optional[str], "Output directory for downloaded resources. Default: '.claude/lanhu' under working directory (auto-gitignored, self-cleaning)"] = None,
         keep_raw_data: Annotated[bool, "Whether to keep raw design images after analysis. Default: False (auto-cleanup)"] = False,
         ctx: Context = None
 ) -> List[Union[str, Image]]:
@@ -5565,8 +5579,8 @@ async def lanhu_get_ai_analyze_design_result(
             return [
                 f"⚠️ No matching design found\n\nAvailable designs:\n" + "\n".join(f"  • {name}" for name in available_names)]
 
-        # 设置输出目录（参数化，支持调用方指定）
-        base_dir = Path(output_dir) if output_dir else DATA_DIR
+        # 设置输出目录（参数化，支持调用方指定；默认 .claude/lanhu 在工作目录下）
+        base_dir = Path(output_dir) if output_dir else _get_default_output_dir()
         design_output_dir = base_dir / 'lanhu_designs' / params['project_id']
         design_output_dir.mkdir(parents=True, exist_ok=True)
 
