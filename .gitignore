@@ -2,3 +2,6 @@
 *.log
 .env
 node_modules/
+
+# OMC state (local user data)
+.omc/
