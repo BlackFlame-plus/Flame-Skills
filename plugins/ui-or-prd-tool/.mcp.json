@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "lanhu-mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/lanhu-mcp/lanhu_mcp_server.py"
+      ],
+      "env": {
+        "MCP_TRANSPORT": "stdio"
+      }
+    }
+  }
+}

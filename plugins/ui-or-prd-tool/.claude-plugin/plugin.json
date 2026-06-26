@@ -1,23 +1,11 @@
 {
   "name": "ui-or-prd-tool",
   "description": "Frontend UI and PRD workflow skills for Figma-driven implementation and Lanhu requirements retrieval.",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "author": {
     "name": "liuzhengri"
   },
   "homepage": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
   "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
-  "mcp": {
-    "lanhu-mcp": {
-      "type": "stdio",
-      "command": "python",
-      "args": [
-        "${PLUGIN_DIR}/mcp/lanhu-mcp/lanhu_mcp_server.py"
-      ],
-      "env": {
-        "MCP_TRANSPORT": "stdio",
-        "PLUGIN_DIR": "${PLUGIN_DIR}"
-      }
-    }
-  }
+  "mcpServers": "./.mcp.json"
 }
