@@ -23,7 +23,7 @@
       "displayName": "UI or PRD Tool",
       "source": "./plugins/ui-or-prd-tool",
       "description": "Frontend UI and PRD workflow skills for Figma context retrieval, design-to-code implementation, Playwright visual verification, and Lanhu requirements retrieval.",
-      "version": "1.2.0",
+      "version": "1.2.1",
       "author": {
         "name": "liuzhengri"
       },
