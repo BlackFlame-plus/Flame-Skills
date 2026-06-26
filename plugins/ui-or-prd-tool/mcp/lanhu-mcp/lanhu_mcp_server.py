@@ -4423,75 +4423,14 @@ async def lanhu_resolve_invite_link(
 
 def _get_analysis_mode_options_by_role(user_role: str) -> str:
     """
-    根据用户角色生成分析模式选项（调整推荐顺序）
-    
-    Args:
-        user_role: 用户角色
-    
-    Returns:
-        格式化的选项文本
+    v3.0 变更：本函数已废弃，不再生成"让用户选择分析模式"的选项文本。
+
+    v3.0 起，蓝湖 MCP 默认输出统一的"完整需求文档 + 可交互 HTML 原型"，
+    不再要求用户在 developer / tester / explorer 三种视角中做选择。
+
+    保留此函数仅为兼容旧调用方的 import 引用，固定返回空字符串。
     """
-    # 归一化角色
-    normalized_role = normalize_role(user_role)
-    
-    # 定义三种模式的完整描述
-    developer_option = """1️⃣ 【开发视角】- 详细技术文档
-   适合：开发人员看需求，准备写代码
-   输出内容：
-   - 详细字段规则表（必填、类型、长度、校验规则、提示文案）
-   - 业务规则清单（判断条件、异常处理、数据流向）
-   - 全局流程图（包含所有分支、判断、异常处理）
-   - 接口依赖说明、数据库设计建议"""
-    
-    tester_option = """2️⃣ 【测试视角】- 测试用例和验证点
-   适合：测试人员写测试用例
-   输出内容：
-   - 正向测试场景（前置条件→步骤→期望结果）
-   - 异常测试场景（边界值、异常情况、错误提示）
-   - 字段校验规则表（含测试边界值）
-   - 状态变化测试点、联调测试清单"""
-    
-    explorer_option = """3️⃣ 【快速探索】- 全局评审视角
-   适合：需求评审会议、快速了解需求
-   输出内容：
-   - 模块核心功能概览（3-5个关键点）
-   - 模块依赖关系图、数据流向图
-   - 开发顺序建议、风险点识别
-   - 前后端分工参考"""
-    
-    # 判断角色类型，调整推荐顺序
-    # 开发相关角色：后端、前端、客户端、开发
-    if normalized_role in ["后端", "前端", "客户端", "开发"]:
-        # 开发视角排第一
-        return f"""
-{developer_option}
-
-{tester_option}
-
-{explorer_option}
-"""
-    
-    # 测试相关角色（检查原始角色名是否包含"测试"）
-    elif "测试" in user_role or "test" in user_role.lower() or "qa" in user_role.lower():
-        # 测试视角排第一
-        return f"""
-{tester_option.replace('2️⃣', '1️⃣')}
-
-{developer_option.replace('1️⃣', '2️⃣')}
-
-{explorer_option}
-"""
-    
-    # 其他角色：产品、项目经理、运维等
-    else:
-        # 快速探索排第一
-        return f"""
-{explorer_option.replace('3️⃣', '1️⃣')}
-
-{developer_option.replace('1️⃣', '2️⃣')}
-
-{tester_option.replace('2️⃣', '3️⃣')}
-"""
+    return ""
 
 
 @mcp.tool()
@@ -4562,17 +4501,19 @@ async def lanhu_get_pages(
         if total_pages > 10:
             result['ai_suggestion'] = {
                 'notice': f'This document contains {total_pages} pages, recommend FOUR-STAGE analysis',
-                'recommendation': 'Use FOUR-STAGE workflow to ensure ZERO omission and deliver complete document',
+                'recommendation': 'Use FOUR-STAGE workflow (v3.0 统一视角) to ensure ZERO omission and deliver complete document + interactive HTML prototype',
                 'next_action': 'Immediately call lanhu_get_ai_analyze_page_result(page_names="all", mode="text_only") for STAGE 1 global scan',
-                'workflow_reminder': 'STAGE 1 (text scan) → Design TODOs → STAGE 2 (detailed analysis) → STAGE 3 (validation) → STAGE 4 (generate document + flowcharts)',
+                'workflow_reminder': 'STAGE 1 (text scan) → Design TODOs → STAGE 2 (detailed analysis, unified mode) → STAGE 3 (validation) → STAGE 4 (generate Markdown doc + interactive HTML prototype)',
+                'v3_note': 'v3.0 已移除"选择分析视角"卡点，无需再让用户选 developer/tester/explorer',
                 'language_note': 'Respond in Chinese when talking to user'
             }
         else:
             # 少于10页也建议使用四阶段（确保零遗漏）
             result['ai_suggestion'] = {
                 'notice': f'Document has {total_pages} pages',
-                'recommendation': 'Still recommend FOUR-STAGE workflow for precision and complete deliverable',
+                'recommendation': 'Still recommend FOUR-STAGE workflow (v3.0 统一视角) for precision and complete deliverable',
                 'next_action': 'Call lanhu_get_ai_analyze_page_result(page_names="all", mode="text_only") for STAGE 1',
+                'v3_note': 'v3.0 已移除"选择分析视角"卡点，无需再让用户选 developer/tester/explorer',
                 'language_note': 'Respond in Chinese when talking to user'
             }
         
@@ -4822,32 +4763,28 @@ def _get_stage4_prompt_explorer() -> str:
 
 def _get_analysis_mode_prompt(analysis_mode: str) -> dict:
     """
-    根据分析模式获取对应的 prompt
-    
+    v3.0 变更：统一返回 UNIFIED 完整版 prompt（Markdown + 可交互HTML）。
+
     Args:
-        analysis_mode: 分析模式 (developer/tester/explorer)
-    
+        analysis_mode: 已废弃参数（保留兼容）。v3.0 起统一走 UNIFIED，
+                       不再区分 developer/tester/explorer。
+
     Returns:
-        包含 stage2_prompt 和 stage4_prompt 的字典
+        包含 mode_name、mode_desc、stage2_prompt、stage4_prompt 的字典
     """
-    if analysis_mode == "tester":
+    try:
+        from ai_persona import AIPersona
         return {
-            "mode_name": "测试视角",
-            "mode_desc": "提取测试场景、校验规则、异常清单",
-            "stage2_prompt": _get_stage2_prompt_tester(),
-            "stage4_prompt": _get_stage4_prompt_tester()
+            "mode_name": "完整需求文档 + 可交互HTML原型",
+            "mode_desc": "统一视角 v3.0：合并开发/测试/探索三视角，自动生成 Markdown 需求文档 + 可交互 HTML 原型",
+            "stage2_prompt": AIPersona.get_stage2_prompt(analysis_mode or ""),
+            "stage4_prompt": AIPersona.get_stage4_prompt(analysis_mode or "")
         }
-    elif analysis_mode == "explorer":
+    except Exception:
+        # 极端降级：仍走原 developer 路径，保证不崩溃
         return {
-            "mode_name": "快速探索",
-            "mode_desc": "提取核心功能、依赖关系、评审要点",
-            "stage2_prompt": _get_stage2_prompt_explorer(),
-            "stage4_prompt": _get_stage4_prompt_explorer()
-        }
-    else:  # developer (default)
-        return {
-            "mode_name": "开发视角",
-            "mode_desc": "提取所有细节、字段规则、完整流程",
+            "mode_name": "完整需求文档 + 可交互HTML原型",
+            "mode_desc": "统一视角 v3.0",
             "stage2_prompt": _get_stage2_prompt_developer(),
             "stage4_prompt": _get_stage4_prompt_developer()
         }
@@ -4858,38 +4795,40 @@ async def lanhu_get_ai_analyze_page_result(
         url: Annotated[str, "Lanhu URL with docId parameter (indicates PRD/prototype document). Example: https://lanhuapp.com/web/#/item/project/product?tid=xxx&pid=xxx&docId=xxx. Required param: pid. tid and docId recommended. Supports detailDetach format. If you have an invite link, use lanhu_resolve_invite_link first!"],
         page_names: Annotated[Union[str, List[str]], "Page name(s) to analyze. Use 'all' for all pages, single name like '退款流程', or list like ['退款流程', '用户中心']. Get exact names from lanhu_get_pages first!"],
         mode: Annotated[str, "Analysis mode: 'text_only' (fast global scan, text only for overview) or 'full' (detailed analysis with images+text). Default: 'full'"] = "full",
-        analysis_mode: Annotated[str, "Analysis perspective (MUST be chosen by user after STAGE 1): 'developer' (detailed for coding), 'tester' (test scenarios/validation), 'explorer' (quick overview for review). Default: 'developer'"] = "developer",
+        analysis_mode: Annotated[str, "[已废弃 v3.0] 旧参数，保留以兼容旧调用。v3.0 起统一输出完整需求文档（不再区分 developer/tester/explorer）。可忽略此参数。"] = "developer",
         output_dir: Annotated[Optional[str], "Output directory for downloaded resources. Default: '.claude/lanhu' under working directory (auto-gitignored, self-cleaning)"] = None,
         keep_raw_data: Annotated[bool, "Whether to keep raw Axure data after analysis. Default: False (auto-cleanup)"] = False,
         ctx: Context = None
 ) -> List[Union[str, Image]]:
     """
     [PRD/Requirement Document] Analyze Lanhu Axure prototype pages - GET VISUAL CONTENT
-    
+
     USE THIS WHEN user says: 需求文档, 需求, PRD, 产品文档, 原型, 交互稿, Axure, 看看需求, 帮我看需求, 分析需求, 需求分析
     DO NOT USE for: UI设计图, 设计稿, 视觉设计, 切图 (use lanhu_get_ai_analyze_design_result instead)
-    
+
+    v3.0 变更（2026-06-26）：
+    - 取消用户选择分析视角（developer/tester/explorer）的卡点
+    - 默认输出统一的"完整需求文档 + 可交互 HTML 原型"
+    - 一次调用同时涵盖开发视角字段/规则、测试视角场景/边界值、评审视角模块概览/依赖
+    - analysis_mode 参数已废弃（保留兼容），调用方无需再指定
+
     FOUR-STAGE WORKFLOW (ZERO OMISSION):
     1. STAGE 1: Call with mode="text_only" and page_names="all" for global text scan
        - Purpose: Build god's view, understand structure, design grouping strategy
        - Output: Text only (fast)
-       - ⚠️ IMPORTANT: After STAGE 1, MUST ask user to choose analysis_mode!
-    
-    2. STAGE 2: Call with mode="full" for each group (output format varies by analysis_mode)
-       - developer: Extract ALL details (fields, rules, flows) - for coding
-       - tester: Extract test scenarios, validation points, field rules - for test cases
-       - explorer: Extract core functions only (3-5 points) - for requirement review
-    
-    3. STAGE 3: Reverse validation (format varies by analysis_mode)
-    
-    4. STAGE 4: Generate deliverable (format varies by analysis_mode)
-       - developer: Detailed requirement doc + global flowchart
-       - tester: Test plan + test case list + field validation table
-       - explorer: Review PPT-style doc + module table + dependency diagram
-    
+
+    2. STAGE 2: Call with mode="full" for each group (unified output, no analysis_mode needed)
+       - Extract: 字段规则 + 测试场景 + 模块依赖 + 评审要点 (合并)
+
+    3. STAGE 3: Reverse validation (unified checklist)
+
+    4. STAGE 4: Generate deliverable — unified format
+       - Markdown 需求文档（完整版，含 3 视角核心内容）
+       - 可交互 HTML 原型（基于截图 + 设计样式 + 字段规则）
+
     Returns:
         - mode="text_only": Text content only (for fast global scan)
-        - mode="full": Visual + text + design style info (format determined by analysis_mode)
+        - mode="full": Visual + text + design style info (unified v3.0 format)
           Each page includes [设计样式参考] with:
             - 文字颜色: exact text colors used (rgba/rgb values, sorted by frequency)
             - 背景颜色: exact background colors used
@@ -4997,25 +4936,26 @@ async def lanhu_get_ai_analyze_page_result(
         if is_text_only:
             # TEXT_ONLY模式的提示（STAGE 1全局扫描）
             header_text += "=" * 60 + "\n"
-            header_text += "📝 STAGE 1: GLOBAL TEXT SCAN (Building God's View)\n"
+            header_text += "📝 STAGE 1：全局文本扫描（建立上帝视角 · v3.0 统一视角版）\n"
             header_text += "=" * 60 + "\n"
-            header_text += "🎯 Your Mission:\n"
-            header_text += "  1. Quickly read ALL page texts below\n"
-            header_text += "  2. Identify document structure (modules, flows, entities)\n"
-            header_text += "  3. Output structured analysis (MUST use Markdown table)\n"
-            header_text += "  4. Design grouping strategy based on business logic\n"
-            header_text += "  5. Create TODOs for STAGE 2 detailed analysis\n\n"
-            header_text += "⚠️ Important:\n"
-            header_text += "  • This is text-only mode for fast overview\n"
-            header_text += "  • No visual outputs in this stage\n"
-            header_text += "  • Focus on understanding structure, not extracting details\n"
-            header_text += "  • Details will be extracted in STAGE 2 (with images)\n"
+            header_text += "🎯 你的任务：\n"
+            header_text += "  1. 快速阅读所有页面文本\n"
+            header_text += "  2. 输出文档结构表（模块、页面、功能）\n"
+            header_text += "  3. 识别业务关联关系\n"
+            header_text += "  4. 设计合理分组策略（基于业务逻辑）\n"
+            header_text += "  5. 创建 TodoWrite 待办列表（细化 STAGE 2 分组任务）\n\n"
+            header_text += "⚠️ 重要提示（v3.0）：\n"
+            header_text += "  • 本阶段为纯文本快速浏览模式，不返回图片\n"
+            header_text += "  • 重点是理解文档结构，不是提取字段细节\n"
+            header_text += "  • 字段细节将在 STAGE 2（full 模式）提取\n"
+            header_text += "  • ✅ v3.0 起无需让用户选择分析视角（developer/tester/explorer）\n"
+            header_text += "  • ✅ 默认统一输出：完整需求文档 + 可交互 HTML 原型\n"
             header_text += "=" * 60 + "\n"
         else:
             # FULL模式的提示（STAGE 2详细分析）
-            # 获取分析模式对应的 prompt
+            # 获取分析模式对应的 prompt（v3.0 统一返回 UNIFIED 完整版）
             mode_prompts = _get_analysis_mode_prompt(analysis_mode)
-            
+
             header_text += "=" * 60 + "\n"
             header_text += f"🤖 STAGE 2 分析模式：【{mode_prompts['mode_name']}】\n"
             header_text += f"📋 {mode_prompts['mode_desc']}\n"
@@ -5027,12 +4967,15 @@ async def lanhu_get_ai_analyze_page_result(
             header_text += "  • 每页附带 [设计样式参考]，包含精确的颜色值、字体规格、图片资源\n"
             header_text += "  • 生成代码时必须使用 [设计样式参考] 中的精确值，禁止凭空编造颜色/字号\n"
             header_text += "  • 页面图片资源已标注本地路径，生成代码时直接引用本地文件\n\n"
+            header_text += "🎯 v3.0 统一视角提示：本次输出已合并开发/测试/探索三视角核心内容\n"
+            header_text += "  • 字段规则表 + 测试场景（正向/异常） + 模块依赖关系 + 评审要点\n"
+            header_text += "  • 完成后 STAGE 4 会自动生成 Markdown 文档 + 可交互 HTML 原型\n\n"
             
             # 添加当前分析模式的 Stage 2 prompt
             header_text += "=" * 60 + "\n"
-            header_text += f"🐕 二狗工作指引（{mode_prompts['mode_name']}）\n"
+            header_text += f"📋 工作指引（{mode_prompts['mode_name']}）\n"
             header_text += "=" * 60 + "\n"
-            header_text += "分析完本组页面后，必须按以下格式输出：\n"
+            header_text += "分析完本组页面后，必须按以下格式输出（v3.0 统一视角，一次涵盖开发/测试/评审三视角核心内容）：\n"
             header_text += mode_prompts['stage2_prompt']
             header_text += "\n" + "=" * 60 + "\n"
             
@@ -5063,30 +5006,29 @@ async def lanhu_get_ai_analyze_page_result(
         
         # 如果是首次查看完整文档（TEXT_ONLY模式），添加STAGE1的工作指引
         if isinstance(page_names, str) and page_names.lower() == 'all' and is_text_only:
-            header_text += "\n" + "🐕 " + "=" * 58 + "\n"
-            header_text += "二狗工作指引（STAGE 1全局扫描）\n"
+            header_text += "\n" + "📋 " + "=" * 58 + "\n"
+            header_text += "工作指引（STAGE 1 全局扫描 · v3.0 统一视角版）\n"
             header_text += "=" * 60 + "\n"
             header_text += "📋 本阶段任务（建立上帝视角）：\n\n"
             header_text += "1️⃣ 快速阅读所有页面文本\n"
             header_text += "2️⃣ 输出文档结构表（模块、页面、功能）\n"
             header_text += "3️⃣ 识别业务关联关系\n"
             header_text += "4️⃣ 设计合理分组策略（基于业务逻辑）\n"
-            header_text += "5️⃣ ⚡【必须】询问用户选择分析模式\n"
+            header_text += "5️⃣ ✅【v3.0 新规】无需询问用户选择分析视角，默认统一输出\n"
+            header_text += "    完整需求文档 + 可交互 HTML 原型\n"
             header_text += "6️⃣ 反向更新TODOs（细化STAGE2分组任务）\n\n"
             header_text += "=" * 60 + "\n"
-            header_text += "⚠️ 【重要】完成扫描后必须询问用户选择分析模式：\n"
+            header_text += "🎯 【v3.0 交付物承诺】完成所有 STAGE 后必须产出：\n"
             header_text += "=" * 60 + "\n"
-            # 根据用户角色生成推荐的分析模式选项
-            user_name_local, user_role_local = get_user_info(ctx) if ctx else ('匿名', '未知')
-            mode_options_local = _get_analysis_mode_options_by_role(user_role_local)
-            
-            header_text += "全部页面已浏览完毕。\n\n"
-            header_text += "📊 发现以下模块：\n"
-            header_text += "[此处输出模块表格]\n\n"
-            header_text += "请选择分析角度：\n"
-            header_text += mode_options_local + "\n"
-            header_text += '也可以自定义需求，比如"简单看看"、"只看数据流向"等。\n\n'
-            header_text += "⚠️ 请告知您的选择，以便继续分析工作。\n"
+            header_text += "📄 Markdown 完整需求文档（合并开发/测试/探索三视角核心内容）\n"
+            header_text += "    路径：{工作目录}/docs/lanhu/{页面名}/{页面名}_需求文档.md\n"
+            header_text += "🌐 可交互 HTML 原型（页面截图 + 设计样式 + 字段规则表）\n"
+            header_text += "    路径：{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html\n"
+            header_text += "=" * 60 + "\n"
+            header_text += "📊 全部页面已浏览完毕。\n\n"
+            header_text += "[此处输出模块结构表（模块、页面数、变更类型）]\n\n"
+            header_text += "💡 下一步：按模块分组进入 STAGE 2 深度分析（mode=\"full\"），\n"
+            header_text += "    完成后自动整合生成两类交付物。\n"
             header_text += "=" * 60 + "\n"
         
         content.append(header_text)

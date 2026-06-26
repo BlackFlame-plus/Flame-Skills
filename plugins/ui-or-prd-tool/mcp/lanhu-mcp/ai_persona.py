@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 @dataclass
 class AIPersona:
-    VERSION = "2.0.0"
-    UPDATED_AT = "2026-06-25"
+    VERSION = "3.0.0"
+    UPDATED_AT = "2026-06-26"
 
     # ──────────────────────────────────────────────
     # 核心指令（必选，约 100 Token）
@@ -26,10 +26,10 @@ class AIPersona:
     # 四阶段工作流指令（获取页面列表时附加，约 400 Token）
     # ──────────────────────────────────────────────
     FOUR_STAGE_WORKFLOW = """
-【四阶段需求分析工作流】
+【四阶段需求分析工作流】（v3.0 统一视角版 — 无需选择分析模式）
 ⚠️ 收到页面列表后，立即用 todo_write 创建框架：
 
-1. STAGE 0：展示页面列表，等待用户选择
+1. STAGE 0：展示页面列表，等待用户选择范围
    → 按模块分组展示页面，不下载任何页面
    → 询问用户：分析全部 / 指定模块 / 指定页面
    → 【禁止】默认调用 page_names="all"，必须等用户确认范围
@@ -38,27 +38,129 @@ class AIPersona:
    → 仅当用户明确要求"先整体看看"才执行
    → 调用：lanhu_get_ai_analyze_page_result(page_names="all", mode="text_only")
    → 输出模块结构表，设计分组策略
+   → 【v3.0】本阶段不再要求用户选择分析模式，统一走"完整需求文档 + 可交互HTML"
 
 3. STAGE 2：按需深度分析（核心）
    → 根据用户选择的模块/页面分组
-   → 调用：lanhu_get_ai_analyze_page_result(page_names=[选中的页面], mode="full", analysis_mode=<用户所选>)
-   → 所有模式必须识别变更类型：🆕新增 / 🔄修改 / ❓未明确
+   → 调用：lanhu_get_ai_analyze_page_result(page_names=[选中的页面], mode="full")
+   → 【v3.0】无需指定 analysis_mode，默认统一为"完整需求文档"输出
+   → 每组必须识别变更类型：🆕新增 / 🔄修改 / ❓未明确
 
 4. STAGE 3：汇总验证 + 生成交付文档
    → 合并分析结果，校验完整性，统计变更类型
-   → 根据 analysis_mode 输出对应交付物（开发文档/测试计划/评审文档）
+   → 【v3.0】交付物固定为两类：
+     • Markdown 需求文档（含开发视角字段/规则 + 测试视角场景/边界值 + 评审视角模块概览/依赖）
+     • 可交互 HTML 原型（基于页面截图 + 设计样式 + 字段规则表）
 
 【TODO 规范】
-- content 必须用户友好，禁止暴露技术参数（mode/API/函数名）
-- 示例正确："开发视角分析：用户认证模块（3页）"
+- content 必须用户友好，禁止暴露技术参数（mode/API/函数名/analysis_mode）
+- 示例正确："深度分析：用户认证模块（3页）"
 - 示例错误："STAGE2-developer-full模式" ❌
 - 必须按顺序更新状态：pending → in_progress → completed
 
-【分析模式选择（CONFIRM_MODE 阶段展示给用户）】
+【v3.0 重大变更】
+✅ 已移除：让用户选择 developer/tester/explorer 视角的卡点
+✅ 默认统一为"完整需求文档"输出（同时涵盖三种视角的核心内容）
+✅ 强制输出可交互 HTML 原型文件
+✅ analysis_mode 参数保留以兼容旧调用，但仍统一走新逻辑
 """
 
     # ──────────────────────────────────────────────
-    # STAGE 2 分析模式 - 开发视角
+    # STAGE 2 统一视角（v3.0 合并：开发 + 测试 + 探索）
+    # ──────────────────────────────────────────────
+    STAGE2_UNIFIED = """
+🧠 元认知验证（统一完整视角 — v3.0）
+
+**🔍 变更类型识别**：
+- 类型：🆕新增 / 🔄修改 / ❓未明确
+- 判断依据：
+  • [引用文档原文关键句，如"全新功能"/"在现有XX基础上"/"优化"]
+  • [描述文档结构特征：是从0介绍还是对比新旧]
+- 测试影响：🆕全量测试 / 🔄回归+增量测试
+- 结论：[一句话说明]
+
+**📋 本组核心N点**（按实际情况，不固定数量）：
+1. [核心功能点1]：具体描述业务逻辑和规则
+2. [核心功能点2]：...
+...
+
+**📊 功能清单表**（开发视角 + 探索视角合一）：
+| 功能点 | 描述 | 输入 | 输出 | 业务规则 | 异常处理 |
+|--------|------|------|------|----------|----------|
+
+**📋 字段规则表**（开发视角 — 如果页面有表单/字段）：
+| 字段名 | 必填 | 类型 | 长度/格式 | 校验规则 | 错误提示 |
+|--------|------|------|-----------|----------|----------|
+
+**🔗 与全局关联**（探索视角）：
+• 数据依赖：依赖「XX模块」的XX数据/状态
+• 数据输出：数据流向「XX模块」用于XX
+• 交互跳转：完成后跳转/触发「XX模块」
+• 状态同步：与「XX模块」的XX状态保持一致
+• 依赖强度：强依赖（必须先完成）/ 弱依赖（可独立开发）
+
+**💡 关键特征标注**（客观事实）：
+- 涉及外部接口：[是/否，哪些]
+- 涉及支付流程：[是/否]
+- 涉及审批流程：[是/否，几级]
+- 涉及文件上传：[是/否]
+
+**⚠️ 遗漏/矛盾检查**：
+• ⚠️ [不清晰的地方]：具体描述
+• ⚠️ [潜在矛盾]：描述发现的逻辑矛盾
+• 🎨 [UI与文字冲突]：对比UI和文字说明的不一致
+• ✅ [已确认清晰]：关键逻辑已明确
+
+**🧪 测试场景提取**（测试视角）：
+
+### ✅ 正向场景（P0核心功能）
+**场景1：[场景名称]**
+- 前置条件：[列出]
+- 操作步骤：
+  1. [步骤1]
+  2. [步骤2]
+  ...
+- 期望结果：[具体描述]
+- 数据准备：[需要什么测试数据]
+
+### ⚠️ 异常场景（P1边界和异常）
+**异常1：[场景名称]**
+- 触发条件：[什么情况下]
+- 操作步骤：[...]
+- 期望结果：[错误提示/页面反应]
+
+**📋 字段校验规则表**（测试视角 — 与开发字段表互补，含边界值）：
+| 字段名 | 必填 | 长度/格式 | 校验规则 | 错误提示文案 | 测试边界值 |
+|--------|------|-----------|----------|-------------|-----------|
+
+**🔄 状态变化表**：
+| 操作 | 操作前状态 | 操作后状态 | 界面变化 |
+|------|-----------|-----------|---------|
+
+**⚠️ 特殊测试点**：
+- 并发场景：[哪些操作可能并发]
+- 权限验证：[哪些操作需要权限]
+- 数据边界：[数据量大时的表现]
+
+**🔗 联调测试点**（与其他模块的交互）：
+- 依赖「XX模块」：[测试时需要先准备什么]
+- 影响「XX模块」：[操作后需要验证哪里]
+
+**🤖 AI理解与建议**（对不清晰的地方，按需输出）：
+💡 [对XX的理解]：
+   • 需求原文：[引用]
+   • AI理解：[推测]
+   • 推理依据：[说明]
+   • 建议：[给产品/开发的建议]
+
+**🎯 评审讨论点**（探索视角 — 供会议讨论）：
+- 给产品：[需要澄清的问题]
+- 给开发：[需要技术评估的点]
+- 给测试：[测试环境/数据准备问题]
+"""
+
+    # ──────────────────────────────────────────────
+    # STAGE 2 分析模式 - 开发视角（保留兼容旧代码引用，默认不再使用）
     # ──────────────────────────────────────────────
     STAGE2_DEVELOPER = """
 🧠 元认知验证（开发视角）
@@ -177,7 +279,263 @@ class AIPersona:
 """
 
     # ──────────────────────────────────────────────
-    # STAGE 4 交付物 - 开发视角
+    # STAGE 4 交付物 - 统一完整版（v3.0 合并 Markdown 文档 + 可交互HTML原型）
+    # ──────────────────────────────────────────────
+    STAGE4_UNIFIED = """
+【STAGE 4 输出要求 - 统一完整视角 v3.0】
+⚠️ 本阶段必须产出两类文件（强制）：
+  A. Markdown 完整需求文档
+  B. 可交互 HTML 原型（基于页面截图 + 设计样式 + 字段规则）
+
+═══════════════════════════════════════════════
+A. Markdown 完整需求文档输出结构
+═══════════════════════════════════════════════
+
+# 【功能名】完整需求文档
+
+## 📊 文档概览
+- 总页面数：N
+- 模块数：N
+- 变更类型统计：🆕新增 X 个模块 / 🔄修改 Y 个模块 / ❓未明确 Z 个模块
+- 待确认项数：N
+
+## 🎯 需求性质分析（变更类型）
+| 模块 | 变更类型 | 判断依据 | 测试影响 |
+|------|---------|---------|---------|
+| 用户认证 | 🆕新增 | "全新功能" | 全量测试 |
+| 订单管理 | 🔄修改 | "在现有XX基础上优化" | 回归+增量测试 |
+
+## 🌍 全局业务流程图（核心交付物 — 文字竖向流程图）
+[用纯文本竖向流程图，包含所有模块的完整细节、字段校验规则、数据流转]
+
+## 📦 模块清单表
+| 序号 | 模块名 | 变更类型 | 核心功能点 | 依赖模块 | 页面数 |
+|------|-------|---------|-----------|---------|-------|
+
+## 🔗 数据流向图（模块间依赖关系）
+- 模块A → 模块B：[传递什么数据，触发什么业务]
+- 模块B → 模块C：[传递什么数据，触发什么业务]
+
+## 📅 开发顺序建议
+- 第一批（无依赖）：模块X、模块Y
+- 第二批（依赖第一批）：模块Z
+- 可并行：模块A、模块B
+
+## ⚠️ 风险和待确认事项
+- 需求不清晰：[具体哪里]
+- 逻辑矛盾：[哪里矛盾]
+- 外部依赖：[缺什么]
+
+═══════════════════════════════════════════════
+逐模块详细展开（每个模块都必须包含以下5个部分）
+═══════════════════════════════════════════════
+
+### 模块 X：XXX模块
+
+#### 1️⃣ 模块概览
+- 页面数：N
+- 变更类型：🆕/🔄/❓
+- 核心功能：1-2 句话概括
+
+#### 2️⃣ 功能清单表（开发视角）
+| 功能点 | 描述 | 输入 | 输出 | 业务规则 | 异常处理 |
+|--------|------|------|------|----------|----------|
+
+#### 3️⃣ 字段规则表（开发视角 — 给开发写代码）
+| 字段名 | 必填 | 类型 | 长度/格式 | 校验规则 | 错误提示 |
+|--------|------|------|-----------|----------|----------|
+
+#### 4️⃣ 测试场景表（测试视角 — 给测试写用例）
+##### ✅ 正向场景（P0核心功能）
+- 场景1：前置条件 → 步骤 → 期望结果
+- 场景2：...
+
+##### ⚠️ 异常场景（P1边界和异常）
+- 异常1：触发条件 → 期望结果
+- 异常2：...
+
+##### 📋 字段校验规则表（含测试边界值）
+| 字段 | 必填 | 规则 | 错误提示 | 边界值测试 |
+|------|------|------|---------|-----------|
+
+##### 🔄 状态变化表
+| 操作 | 操作前状态 | 操作后状态 | 界面变化 |
+|------|-----------|-----------|---------|
+
+#### 5️⃣ 评审要点（探索视角 — 供会议讨论）
+- 给产品：[需要澄清的问题]
+- 给开发：[需要技术评估的点]
+- 给测试：[测试环境/数据准备问题]
+
+═══════════════════════════════════════════════
+B. 可交互 HTML 原型（强制输出）
+═══════════════════════════════════════════════
+
+【HTML 文件要求】
+- 路径：`{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html`
+- 必须使用 Tailwind CSS（CDN 引入即可）
+- 必须包含：
+  1. 页面截图区（按页面顺序展示，每张截图含标题）
+  2. 设计样式参考区（颜色、字体规格、间距 token）
+  3. 字段规则表（与 Markdown 文档同步）
+  4. 测试场景交互卡片（可点击展开/折叠）
+  5. 模块导航侧边栏（点击跳转对应模块）
+  6. 暗色/亮色模式切换按钮
+  7. 响应式布局（移动端可用）
+
+【HTML 模板骨架】（AI 必须参考此结构生成）：
+```html
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{页面名} - 交互预览</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { /* 设计 token */ } }
+    }
+  </script>
+  <style>
+    .prototype-img { cursor: zoom-in; transition: transform 0.2s; }
+    .prototype-img:hover { transform: scale(1.02); }
+    .lightbox { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 9999; align-items: center; justify-content: center; }
+    .lightbox.active { display: flex; }
+  </style>
+</head>
+<body class="bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
+  <!-- 顶部：标题 + 暗色模式切换 -->
+  <header class="sticky top-0 z-50 bg-white dark:bg-gray-800 shadow">
+    <div class="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
+      <h1 class="text-xl font-bold">{功能名} · 交互预览</h1>
+      <button id="themeToggle" class="px-3 py-1 rounded bg-gray-200 dark:bg-gray-700">🌗 切换主题</button>
+    </div>
+  </header>
+
+  <div class="max-w-7xl mx-auto px-4 py-6 flex gap-6">
+    <!-- 左侧：模块导航 -->
+    <aside class="w-64 sticky top-20 self-start hidden lg:block">
+      <nav class="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+        <h2 class="font-bold mb-3">📦 模块导航</h2>
+        <ul class="space-y-2">
+          <!-- 每个模块一个链接，锚点跳转到对应 section -->
+        </ul>
+      </nav>
+    </aside>
+
+    <!-- 主内容区 -->
+    <main class="flex-1 space-y-8">
+      <!-- 模块 1 区块 -->
+      <section id="module-1" class="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+        <h2 class="text-2xl font-bold mb-4">📦 模块1：XXX</h2>
+
+        <!-- 页面截图 -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">📸 页面截图</h3>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="border rounded overflow-hidden">
+              <img src="./screenshots/page1.png" class="prototype-img w-full" onclick="openLightbox(this.src)">
+              <p class="p-2 text-sm bg-gray-100 dark:bg-gray-700">页面1：XXX</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 设计样式参考 -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">🎨 设计样式参考</h3>
+          <div class="grid grid-cols-2 md:grid-cols-4 gap-3">
+            <!-- 颜色色块 -->
+            <div class="flex items-center gap-2">
+              <div class="w-8 h-8 rounded" style="background: #1890ff"></div>
+              <span class="text-sm">#1890ff<br>主色</span>
+            </div>
+            <!-- 字号规格 -->
+          </div>
+        </div>
+
+        <!-- 字段规则表 -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">📋 字段规则表</h3>
+          <table class="w-full text-sm">
+            <thead class="bg-gray-100 dark:bg-gray-700">
+              <tr><th>字段名</th><th>必填</th><th>类型</th><th>校验规则</th><th>错误提示</th></tr>
+            </thead>
+            <tbody>
+              <!-- 每行一个字段 -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 测试场景（可交互折叠） -->
+        <div class="mb-6">
+          <h3 class="text-lg font-semibold mb-3">🧪 测试场景</h3>
+          <div class="space-y-2">
+            <details class="border rounded p-3">
+              <summary class="cursor-pointer font-medium">✅ 场景1：xxx（正向 P0）</summary>
+              <div class="mt-2 text-sm">
+                <p><b>前置条件：</b>...</p>
+                <p><b>操作步骤：</b>...</p>
+                <p><b>期望结果：</b>...</p>
+              </div>
+            </details>
+            <details class="border rounded p-3">
+              <summary class="cursor-pointer font-medium">⚠️ 异常1：xxx（P1边界）</summary>
+              <div class="mt-2 text-sm">
+                <p><b>触发条件：</b>...</p>
+                <p><b>期望结果：</b>...</p>
+              </div>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 大图灯箱 -->
+  <div id="lightbox" class="lightbox" onclick="this.classList.remove('active')">
+    <img id="lightboxImg" class="max-w-full max-h-full">
+  </div>
+
+  <script>
+    // 主题切换
+    document.getElementById('themeToggle').onclick = () => {
+      document.documentElement.classList.toggle('dark');
+      localStorage.setItem('theme', document.documentElement.classList.contains('dark') ? 'dark' : 'light');
+    };
+    if (localStorage.getItem('theme') === 'dark') document.documentElement.classList.add('dark');
+    // 灯箱
+    function openLightbox(src) {
+      document.getElementById('lightboxImg').src = src;
+      document.getElementById('lightbox').classList.add('active');
+    }
+    // 平滑滚动
+    document.querySelectorAll('nav a').forEach(a => {
+      a.onclick = e => {
+        e.preventDefault();
+        document.querySelector(a.getAttribute('href')).scrollIntoView({behavior: 'smooth'});
+      };
+    });
+  </script>
+</body>
+</html>
+```
+
+【质量标准】
+- 开发看完 Markdown 字段表能直接写代码
+- 测试看完场景表能直接写用例
+- 产品/项目经理看完 HTML 原型能快速评审
+- 0 遗漏（每个字段、每个场景、每个模块都要覆盖）
+
+【强制交付清单】
+✅ 1 个 Markdown 文档（路径：{工作目录}/docs/lanhu/{页面名}/{页面名}_需求文档.md）
+✅ 1 个可交互 HTML 原型（路径：{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html）
+✅ 页面截图引用（从 MCP 返回的 screenshots/ 目录）
+"""
+
+    # ──────────────────────────────────────────────
+    # STAGE 4 交付物 - 开发视角（保留兼容旧代码引用，默认不再使用）
     # ──────────────────────────────────────────────
     STAGE4_DEVELOPER = """
 【STAGE 4 输出要求 - 开发视角】
@@ -252,36 +610,30 @@ class AIPersona:
 
     @classmethod
     def get_workflow(cls, mode_options: str = "") -> str:
-        """获取完整工作流指令（仅在 get_pages 时传）"""
-        workflow = cls.FOUR_STAGE_WORKFLOW
-        if mode_options:
-            workflow = workflow.replace(
-                "→ 开发视角：字段、规则、逻辑、接口依赖",
-                f"→ 开发视角：字段、规则、逻辑、接口依赖\n   {mode_options}"
-            )
-        return cls.get_core() + "\n" + workflow
+        """获取完整工作流指令（仅在 get_pages 时传）
+
+        v3.0 变更：mode_options 参数保留以兼容旧调用方签名，但已不再用于生成
+        "让用户选择分析模式"的提示。所有调用统一返回 v3.0 工作流。
+        """
+        # v3.0：忽略 mode_options，不再追加"让用户选择视角"的卡点
+        return cls.get_core() + "\n" + cls.FOUR_STAGE_WORKFLOW
 
     @classmethod
-    def get_stage2_prompt(cls, mode: str) -> str:
-        """获取 STAGE 2 分析模式的 prompt"""
-        if mode == "developer":
-            return cls.get_core() + "\n" + cls.STAGE2_DEVELOPER
-        elif mode == "tester":
-            return cls.get_core() + "\n" + cls.STAGE2_TESTER
-        elif mode == "explorer":
-            return cls.get_core() + "\n" + cls.STAGE2_EXPLORER
-        return cls.get_core()
+    def get_stage2_prompt(cls, mode: str = "") -> str:
+        """获取 STAGE 2 分析模式的 prompt
+
+        v3.0 变更：无论传入 developer/tester/explorer/空，统一返回 UNIFIED 完整版。
+        旧视角属性保留以兼容外部可能的反射/调试用途，但默认走统一视角。
+        """
+        return cls.get_core() + "\n" + cls.STAGE2_UNIFIED
 
     @classmethod
-    def get_stage4_prompt(cls, mode: str) -> str:
-        """获取 STAGE 4 交付物的 prompt"""
-        if mode == "developer":
-            return cls.get_core() + "\n" + cls.STAGE4_DEVELOPER
-        elif mode == "tester":
-            return cls.get_core() + "\n" + cls.STAGE4_TESTER
-        elif mode == "explorer":
-            return cls.get_core() + "\n" + cls.STAGE4_EXPLORER
-        return cls.get_core()
+    def get_stage4_prompt(cls, mode: str = "") -> str:
+        """获取 STAGE 4 交付物的 prompt
+
+        v3.0 变更：统一返回 UNIFIED 完整版交付物（Markdown + 可交互HTML原型）。
+        """
+        return cls.get_core() + "\n" + cls.STAGE4_UNIFIED
 
     @classmethod
     def header(cls) -> str:
