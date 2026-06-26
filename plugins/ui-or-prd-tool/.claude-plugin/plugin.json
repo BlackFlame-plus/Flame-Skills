@@ -6,5 +6,18 @@
     "name": "liuzhengri"
   },
   "homepage": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
-  "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+  "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills",
+  "mcp": {
+    "lanhu-mcp": {
+      "type": "stdio",
+      "command": "python",
+      "args": [
+        "${PLUGIN_DIR}/mcp/lanhu-mcp/lanhu_mcp_server.py"
+      ],
+      "env": {
+        "MCP_TRANSPORT": "stdio",
+        "PLUGIN_DIR": "${PLUGIN_DIR}"
+      }
+    }
+  }
 }
