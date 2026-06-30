@@ -57,10 +57,10 @@ digraph lanhu_flow {
 | 维度 | 说明 |
 |------|------|
 | **传输模式** | **stdio** 子进程，无需手动启动服务 |
-| **缓存位置** | **项目目录内** `.claude/lanhu/{project_id}/` |
-| **数据归属** | 每个项目独立缓存，互不干扰 |
+| **缓存位置** | **项目目录内** `.claude/lanhu/`（不按 project_id 分子目录） |
+| **缓存命名** | `axure_extract_{docId}/` 按 docId 命名，内含 `data/document.js` 等 |
 | **自动清理** | ✅ 默认分析完即删除原始下载数据，不占空间 |
-| **手动保留** | 用户明确说"保留原始数据"才持久化到项目目录 |
+| **手动保留** | 用户明确说"保留原始数据"才持久化 |
 
 **MCP 工具参数（调用时务必传递）：**
 
@@ -98,7 +98,7 @@ lanhu_get_ai_analyze_page_result(
 |------|------|
 | ❌ 用 Playwright 打开蓝湖网页自己抓 | 蓝湖页面有反爬，会触发风控；抓到的内容不完整；Cookie 暴露在浏览器 |
 | ❌ 直接调蓝湖 API（`lanhuapp.com/api/...`） | 同样需要 Cookie；绕开 MCP 等于绕过统一管理 |
-| ❌ 让用户提供 JSON 截图/HTML 文件手喂 | 流程断裂，每次都靠人工 |
+| ❌ 让用户提供 JSON / HTML 文件手喂 | 流程断裂，每次都靠人工 |
 | ❌ 用旧缓存/旧文档蒙混 | 用户来问就是因为要看最新的 |
 
 **必须做：**
@@ -136,10 +136,10 @@ lanhu_get_ai_analyze_page_result(
 | "快速扫一遍" / "大概讲一下" / "先整体看看" | 用户要全局概览 | `lanhu_get_pages` → `page_names="all"` + `mode="text_only"` |
 | 用户明确说了具体页面名<br>（如"帮我分析登录页"、"看一下支付流程"） | 用户指定具体页面 | `lanhu_get_pages` → **模糊匹配真实页面名**<br>✅ 匹配到 → `page_names="匹配到的真实名称"` + `mode="full"`<br>❌ 未匹配到 → 向用户确认 |
 | 用户说了多个页面名<br>（如"支付和退款都看看"） | 多页面深度分析 | `lanhu_get_pages` → 逐一匹配真实名称 |
-| 用户明确说了 "只要文字" / "不要截图" | 用户主动要求提速 | 同上，仅 `mode="text_only"` |
+| 用户明确说了 "只要文字" / 快速查看 | 用户主动要求提速 | 同上，仅 `mode="text_only"` |
 | **URL 中包含 `pageId` 参数** | 链接直接指向特定页面 ⚠️ | `lanhu_get_pages` → **按 pageId 精确匹配页面名** → 只分析该页面 |
 
-> 💡 默认原则：用户只要说的是**具体页面名称**，就用 `mode="full"`（全量截图+样式）；只有明确说"快速扫一遍"才用 `text_only`。
+> 💡 默认原则：用户只要说的是**具体页面名称**，就用 `mode="full"`（全量样式）；只有明确说"快速扫一遍"才用 `text_only`。
 
 > ⚠️ **强制规则 1**：**禁止跳过 `lanhu_get_pages` 直接调用分析**。无论用户是否提供了页面名称或 pageId，都必须先获取真实页面列表并匹配。
 
@@ -237,7 +237,7 @@ digraph four_stage {
 | 交付物 | 路径 | 内容 |
 |--------|------|------|
 | 📄 Markdown 完整需求文档 | `{工作目录}/docs/lanhu/{页面名}/{页面名}_需求文档.md` | 文档概览 + 需求性质 + 全局流程图 + 模块清单 + 逐模块详情（功能清单/字段规则/测试场景/评审要点） |
-| 🌐 可交互 HTML 原型 | `{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html` | 页面截图 + 设计样式 + 字段规则表 + 可折叠测试场景 + 模块导航 + 暗色/亮色切换 |
+| 🌐 可交互 HTML 原型 | `{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html` | 设计样式 + 字段规则表 + 可折叠测试场景 + 模块导航 + 暗色/亮色切换 |
 
 ### 交付物输出目录（强制要求）
 
@@ -259,9 +259,19 @@ digraph four_stage {
 - MD文件**必须**包含：完整的四阶段分析结果、功能清单、字段规则、流程图、待确认事项
 - **两类文件缺一不可**：Markdown 提供完整内容供开发/测试查阅，HTML 提供直观的可交互原型供产品/项目经理评审
 
-### HTML 原型强制要求（v3.0 新增）
+### HTML 原型强制要求（v3.2 新增：三种模板样式选择）
 
-**可交互 HTML 原型必须满足以下技术要求：**
+**根据页面类型选择合适的模板样式：**
+
+| 模板类型 | 适用场景 | 识别关键词 | 核心特征 |
+|---------|---------|-----------|---------|
+| 📑 **标准多页分散式** | 流程型页面（登录/注册/工作台/个人中心） | "登录"、"注册"、"工作台"、"个人中心"、"流程" | 每个功能独立卡片，适合线性流程，渐变头部 |
+| ✏️ **单一大版块式** | 编辑页/详情页/表单页 | "编辑"、"详情"、"配置"、"设置" | **一个统一大卡片包裹所有区域，渐变分隔线** |
+| 🖥️ **Element UI 管理端式** | 管理后台、列表页、数据看板、系统设置 | "管理"、"列表"、"系统设置"、"后台"、"数据"、"看板" | **Element Plus 官方蓝白主题，4px 小圆角，表格样式** |
+
+---
+
+**通用技术要求（所有模板必须满足）：**
 
 | 维度 | 要求 |
 |------|------|
@@ -275,168 +285,492 @@ digraph four_stage {
 | 模块导航 | 左侧 sticky 侧边栏，点击平滑滚动 |
 | 截图引用 | 从 MCP 截图输出目录读取（默认 `.claude/lanhu/.../screenshots/`） |
 
-## 6. 需求列表展示格式
+---
 
-```
-📋 蓝湖需求文档 - 共 N 个页面
+#### 🔹 单一大版块模板（所有页面通用，v3.1 新增）
 
-| 序号 | 模块 | 需求名称 | 页面数 |
-|-----|------|---------|-------|
-| 1 | 用户认证 | 登录注册流程 | 3 |
-| 2 | 订单管理 | 订单创建与支付 | 5 |
-| ... | ... | ... | ... |
+**适用：所有页面都必须使用此模板！多页面时，每个页面内部都按此规则布局**
 
-请选择需要查看的需求序号（可多选，如 1,3）：
-```
+**核心结构要求：**
 
-## 7. 完整需求输出模板（v3.0 统一视角示例）
+1. **✅ 一个大卡片包裹所有区域**
+   - 顶部蓝紫渐变标题区（图标 + 大标题 + 副标题）
+   - 页面所有内容分区都在同一个 `bg-white dark:bg-gray-800` 卡片内
 
-### ⚠️ 强制输出要求（必须执行）
+2. **✅ 内部分区方式（不用独立小卡片）**
+   - 用 **渐变分隔线** 隔开每个区域
+   - 分隔线样式：`h-px bg-gradient-to-r from-transparent via-gray-300 dark:via-gray-600 to-transparent`
 
-**分析完成后，必须调用 `Write` 工具生成以下两个文件：**
+3. **✅ 每个区域标题 + 状态徽章**
+   - 结构：`左侧图标 + 标题 + 右侧小徽章`
+   - 📋 **只读展示，不可编辑** - 灰色徽章 `bg-gray-100 text-gray-600`
+   - 👤 **可编辑** - 蓝色徽章 `bg-blue-100 text-blue-600`
+   - ➕ **非必填** - 绿色徽章 `bg-green-100 text-green-600`
+   - 根据页面实际情况自定义徽章内容
 
-**文件1：Markdown 完整需求文档**
-- 路径：`{工作目录}/docs/lanhu/{页面名}/{页面名}_需求文档.md`
-- 内容：完整的四阶段分析结果（合并开发/测试/评审三视角），包括所有表格、流程图、待确认事项
-- 必须包含：文档概览 + 需求性质分析 + 全局流程图 + 模块清单 + 逐模块详情（功能清单/字段规则/测试场景/评审要点）
+4. **✅ 字段规则表（文档区，与实际展示分离）**
+   - 放在下方独立卡片中
+   - 琥珀色标题区分，标注"文档参考区域 · 非实际表单内容"
 
-**文件2：可交互 HTML 原型**
-- 路径：`{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html`
-- 内容：包含完整页面截图、设计样式、颜色值、字体规格、字段规则表格、可折叠测试场景、模块导航
-- 样式要求：使用 Tailwind CSS（CDN），支持响应式布局、暗色/亮色模式切换、点击放大图片
+**多页面处理规则：**
+- 每个 `<section id="page-xxx">` 内部都按以上 1-4 点规则布局
+- ⭐ **页面跳转方式：纯页面内交互跳转，不设底部操作按钮**
+  - 页面切换只靠左侧「操作流程」区域的步骤圆点点击触发
+  - 点击 step1 → 跳转到页面1，步骤圆点高亮蓝色
+  - 点击 step2 → 跳转到页面2，前面的步骤圆点变绿色
+  - 整个交互流程不需要底部有"上一步/下一步"这类按钮
+- 每个页面有自己独立的大卡片和渐变分隔线
+- 字段规则表统一放在所有页面的最后，一个文档一份即可
 
-**Markdown 文档模板骨架：**
+**HTML 原型模板选择规则（v3.2 新增）：**
 
-```
-# 【模块名】完整需求文档（v3.0 统一视角）
+| 模板类型 | 适用场景 | 识别关键词 | UI 风格 |
+|---------|---------|-----------|---------|
+| 📄 **标准多页分散式** | 通用表单、登录注册、工作台、流程型页面 | "登录"、"注册"、"工作台"、"个人中心"、"流程" | 渐变头部 + 多卡片 |
+| ✏️ **单一大版块式** | 编辑页、详情页、表单页 | "编辑"、"详情"、"配置"、"设置" | 统一大卡片 + 渐变分隔线 |
+| 🖥️ **Element UI 管理端式** | 管理后台、列表页、数据看板、系统设置 | "管理"、"列表"、"系统设置"、"后台"、"数据"、"看板" | **Element UI 官方风格（蓝白主题）** |
 
-## 📊 文档概览
-- 总页面数：N
-- 模块数：N
-- 变更类型统计：🆕新增 X / 🔄修改 Y / ❓未明确 Z
-- 待确认项数：N
+---
 
-## 🎯 需求性质分析
-| 模块 | 变更类型 | 判断依据 | 测试影响 |
-|------|---------|---------|---------|
+### 🖥️ Element UI 管理端风格模板（管理后台专用）
 
-## 🌍 全局业务流程图
-[纯文本竖向流程图，避免表格内使用 <br>]
+**设计规范（严格遵循 Element Plus 官方视觉）：**
 
-## 📦 模块清单表
-| 序号 | 模块名 | 变更类型 | 核心功能点 | 依赖模块 | 页面数 |
+| Element 组件 | 配色/样式 |
+|-------------|----------|
+| **主题色** | `#409EFF`（Element 官方蓝） |
+| **成功色** | `#67C23A` |
+| **警告色** | `#E6A23C` |
+| **危险色** | `#F56C6C` |
+| **信息色** | `#909399` |
+| **卡片圆角** | `4px`（非大圆角） |
+| **阴影** | `0 2px 12px 0 rgba(0,0,0,0.1)` |
+| **按钮样式** | 蓝色填充、无边框渐变 |
+| **输入框** | 1px 灰色边框，hover: #c0c4cc，focus: #409EFF |
+| **表格表头** | `#F5F7FA` 浅灰背景 |
 
-## 🔗 数据流向图
-[模块间依赖关系图]
+---
 
-## 模块1：XXX
-### 功能清单表
-| 功能点 | 描述 | 输入 | 输出 | 业务规则 | 异常处理 |
-### 字段规则表（开发视角）
-| 字段名 | 必填 | 类型 | 校验规则 | 错误提示 |
-### 测试场景（测试视角）
-#### ✅ 正向场景（P0）
-#### ⚠️ 异常场景（P1）
-#### 字段校验边界值
-### 评审要点（评审视角）
-- 给产品：...
-- 给开发：...
-- 给测试：...
+**标准结构骨架（共用，与原来一致）：**
 
-## ⚠️ 待确认事项
-- ...
+```html
+<!DOCTYPE html>
+<html lang="zh-CN" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>[文档标题]</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class'
+        }
+    </script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+        }
+        .nav-item.active {
+            background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%);
+            color: white;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-300">
 
-## 📎 相关资源
-- 原型链接
-- 设计稿链接
-```
+    <!-- 标准顶部导航栏（不随模板类型变化） -->
+    <header class="fixed top-0 left-0 right-0 h-14 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 z-50 px-4 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-3">
+            <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5-3H7a3 3 0 01-2 2v5z"></path>
+            </svg>
+            <h1 class="text-lg font-semibold">[文档标题]</h1>
+        </div>
+        <div class="flex items-center gap-3">
+            <button id="themeToggle" class="p-2 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors" title="切换明暗主题">
+                <svg class="w-5 h-5 dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.354z"></path>
+                </svg>
+                <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707.707m12.728 0l-.707.707z"></path>
+                </svg>
+            </button>
+        </div>
+    </header>
 
-## 参数矩阵（核心，必看）
+    <div class="flex pt-14">
+        <!-- 标准左侧导航栏（不随模板类型变化） -->
+        <aside class="w-64 fixed left-0 top-14 bottom-0 bg-white dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 overflow-y-auto z-40">
+            <div class="p-4">
+                <!-- 交互演示模式开关 -->
+                <div class="mb-6 p-3 bg-blue-50 dark:bg-blue-900/30 rounded-lg">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-sm font-medium text-blue-700 dark:text-blue-300">🎮 交互演示模式</span>
+                        <label class="relative inline-flex items-center cursor-pointer">
+                            <input type="checkbox" id="demoModeToggle" class="sr-only peer" checked>
+                            <div class="w-9 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                    </div>
+                    <p class="text-xs text-blue-600 dark:text-blue-400">开启后可真实操作表单、按钮、弹窗</p>
+                </div>
 
-`lanhu_get_ai_analyze_page_result` 的两个核心参数是**独立维度**，不要混淆：
+                <!-- 原型页面导航 -->
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">📑 原型页面</h2>
+                <nav id="navList" class="space-y-1 mb-6">
+                    <button onclick="switchPage('login')" class="nav-item active w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                        <span>🔐</span> 用户登录
+                    </button>
+                    <button onclick="switchPage('register')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                        <span>📝</span> 用户注册
+                    </button>
+                    <button onclick="switchPage('dashboard')" class="nav-item w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center gap-2">
+                        <span>📊</span> 工作台
+                    </button>
+                </nav>
 
-| 参数 | 作用 | 选项 |
-|------|------|------|
-| `page_names` | **分析哪些页面** | `"all"`=全部页面 / `"首页"`=单页面 / `["页1","页2"]`=多选 |
-| `mode` | **分析的深度** | `"text_only"`=只提取文本（快） / `"full"`=文本+截图+样式（慢但全） |
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
 
-### 最佳实践组合
+                <!-- ⭐ 操作流程导航 -->
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">⏱️ 操作流程</h2>
+                <div class="space-y-2">
+                    <div class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors" onclick="switchPage('login')">
+                        <div id="step1" class="step-dot active w-6 h-6 rounded-full bg-green-500 flex items-center justify-center text-xs text-white font-bold">1</div>
+                        <span class="text-sm">填写登录信息</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors" onclick="switchPage('register')">
+                        <div id="step2" class="step-dot w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs text-white font-bold">2</div>
+                        <span class="text-sm">验证表单</span>
+                    </div>
+                    <div class="flex items-center gap-3 p-2 hover:bg-gray-50 dark:hover:bg-gray-700/50 rounded-lg cursor-pointer transition-colors" onclick="switchPage('dashboard')">
+                        <div id="step3" class="step-dot w-6 h-6 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs text-white font-bold">3</div>
+                        <span class="text-sm">跳转工作台</span>
+                    </div>
+                </div>
 
-| 场景 | 推荐参数组合 | 预期耗时 | 输出 |
-|------|-------------|---------|------|
-| **第一次看文档（STAGE 1）** | `page_names="all"` + `mode="text_only"` | 1-2 分钟 | 全部页面文本，快速建立全局认知 |
-| **只确认某页是否有某字段** | `page_names="目标页"` + `mode="text_only"` | 几秒 | 只看目标页文本，不截图 |
-| **正式深度分析（STAGE 2）** | `page_names=["模块1","模块2"]` + `mode="full"` | 数十秒/页 | 每个页面都带完整截图+设计样式，用于开发/测试 |
-| **验证某页 UI 是否符合预期** | `page_names="目标页"` + `mode="full"` | 数十秒 | 带截图的完整页面内容 |
+                <hr class="my-4 border-gray-200 dark:border-gray-700">
 
-> ⚡ **性能大幅提升（2026.06.25 优化）**：
-> - 已实现**按需下载**：先匹配目标页面，只下载需要的资源（1页 vs 35页 = 速度提升 3500%）
-> - `text_only` 模式：跳过 CSS/图片 下载，纯文本提取，单页分析 ≤ 2 秒
-> - 缓存机制：首次下载整个 document.js（蓝湖架构限制，必须），但只渲染/下载目标页面的 HTML
-> - 现在：**首次单页分析约 30 秒**（vs 之前 5 分钟+），有缓存后秒级响应
+                <!-- 设计 TOKEN -->
+                <h2 class="text-sm font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-3">🎨 设计 TOKEN</h2>
+                <div class="space-y-3">
+                    <div>
+                        <h3 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">主色调</h3>
+                        <div class="flex gap-2">
+                            <div class="text-center"><div class="w-8 h-8 rounded-lg bg-[#3b82f6]"></div><span class="text-xs">#3b82f6</span></div>
+                            <div class="text-center"><div class="w-8 h-8 rounded-lg bg-[#2563eb]"></div><span class="text-xs">#2563eb</span></div>
+                            <div class="text-center"><div class="w-8 h-8 rounded-lg bg-[#22c55e]"></div><span class="text-xs">#22c55e</span></div>
+                            <div class="text-center"><div class="w-8 h-8 rounded-lg bg-[#f59e0b]"></div><span class="text-xs">#f59e0b</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <h3 class="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">字体层级</h3>
+                        <div class="space-y-1 text-xs">
+                            <div class="flex justify-between"><span style="font-size:18px; font-weight:600">标题</span><span class="text-gray-500">18px / 600</span></div>
+                            <div class="flex justify-between"><span style="font-size:16px; font-weight:500">副标题</span><span class="text-gray-500">16px / 500</span></div>
+                            <div class="flex justify-between"><span style="font-size:14px; font-weight:400">正文</span><span class="text-gray-500">14px / 400</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </aside>
 
-## 8. Quick Reference
+        <!-- 主内容区 -->
+        <main class="ml-64 flex-1 p-6">
 
-| 操作 | 工具/参数 |
-|------|----------|
-| 获取页面列表 | `mcp__lanhu__lanhu_get_pages` |
-| 获取需求详情 | `mcp__lanhu__lanhu_get_ai_analyze_page_result` |
-| 指定项目缓存目录 | `output_dir=".claude/lanhu"` |
-| 保留原始Axure数据 | `keep_raw_data=True` |
-| 极速文本模式 | `mode="text_only"` |
-| 完整模式（截图+样式） | `mode="full"` |
-| 输出MD需求文档 | `{工作目录}/docs/lanhu/{页面名}/{页面名}_需求文档.md` |
-| 输出HTML交互预览 | `{工作目录}/docs/lanhu/{页面名}/{页面名}_交互预览.html` |
+        <!-- Toast 通知容器 -->
+        <div id="toastContainer" class="fixed top-20 right-4 z-[200] space-y-2">
+            <!-- Toast 动态插入 -->
+        </div>
 
-## 9. 常见问题
+        <script>
+            // ==========================================
+            // 全局状态
+            // ==========================================
+            let currentPage = 'login';
+            let currentStep = 1;
+            let demoMode = true;
 
-**Q: MCP 服务启动失败怎么办？**
-A: 严格按 §1.1 硬规则处理：**禁止用 Playwright / HTTP 抓取 / 旧缓存 / 人工喂文件** 等任何方式替代。先把 MCP 错误信息（含 setup guide）原样展示给用户，要求他修复后再继续。
+            // ==========================================
+            // 主题切换
+            // ==========================================
+            function initTheme() {
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    document.documentElement.className = savedTheme;
+                } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                    document.documentElement.className = 'dark';
+                }
+            }
 
-**Q: 分析很慢怎么办？**
-A: 这是预期行为，原因分层：
+            document.getElementById('themeToggle').addEventListener('click', function() {
+                const html = document.documentElement;
+                if (html.classList.contains('dark')) {
+                    html.classList.remove('dark');
+                    html.classList.add('light');
+                    localStorage.setItem('theme', 'light');
+                } else {
+                    html.classList.remove('light');
+                    html.classList.add('dark');
+                    localStorage.setItem('theme', 'dark');
+                }
+            });
 
-1. **首次分析(无缓存)最慢(数分钟)**——MCP 需要从蓝湖下载整个 Axure 文档资源包(HTML/JS/CSS/图片)
-2. **有缓存后快得多(秒级)**——资源包已存在本地,只需渲染提取
-3. **模式差异**：
-   - `text_only` 最快：只渲染提取文本(跳过全页截图与样式计算)
-   - `full` 最慢：包含全页截图+样式提取,单页可能需要数十秒
+            initTheme();
 
-建议:页面很多时不要一上来就 `all`,先用 `lanhu_get_pages` 看模块结构,再按模块分批分析,减少单批等待时间。对同一文档重复分析时速度会显著加快(有本地缓存)。
+            // ==========================================
+            // 演示模式开关
+            // ==========================================
+            document.getElementById('demoModeToggle').addEventListener('change', (e) => {
+                demoMode = e.target.checked;
+                showToast(demoMode ? '🎮 交互模式已开启' : '📖 已切换到只读模式', 'info');
+            });
 
-**Q: 为什么只分析 1 页，也要下载整个文档？**
-A: 这是 Axure + 蓝湖 API 的架构限制，**无法避免**：
-- Axure 导出是单页应用（SPA）架构，所有页面数据打包在一个 `document.js` 里
-- 蓝湖只提供「下载整个资源包」的接口，没有「按需获取单页」的 API
-- 首次下载后会缓存到本地，后续分析同文档的任何页面都不需要重新下载
-- ✅ `text_only` 模式已优化：**下载全部，但只渲染目标页面的文本**，节省渲染时间
+            // ==========================================
+            // 页面切换 + 操作流程联动
+            // ==========================================
+            function switchPage(pageName) {
+                // 隐藏所有页面
+                document.querySelectorAll('.page-section').forEach(page => {
+                    page.classList.add('hidden');
+                });
 
-**Q: text_only 模式报错找不到 .png 文件？**
-A: MCP 的已知 bug（已在 v1.1+ 修复），原因是跳过截图生成后，返回值仍携带 `screenshot_path`，部分场景下上层逻辑尝试访问。
-- 临时解决：删除 `data/` 缓存目录，重新分析（强制走无缓存的新渲染流程）
-- 根本解决：升级 MCP 服务，`text_only` 模式不再返回 `screenshot_path` 字段
+                // 显示目标页面
+                document.getElementById(`page-${pageName}`).classList.remove('hidden');
+                currentPage = pageName;
 
-**Q: Windows 环境遇到各种奇怪的报错？**
-A: 常见 Windows 坑汇总：
+                // 更新导航高亮
+                document.querySelectorAll('.nav-item').forEach(item => {
+                    item.classList.remove('active');
+                });
+                event.target.closest('.nav-item')?.classList.add('active');
 
-| 现象 | 根因 | 解决 |
-|------|------|------|
-| `[WinError 2] 系统找不到指定的文件` | 路径里的中文/特殊字符 | 删除 `data/` 缓存，重试 |
-| `[Errno 11002] getaddrinfo failed` | localhost DNS 解析偶发失败 | MCP 内部改用 `127.0.0.1` 访问本地服务 |
-| `UnicodeEncodeError: 'gbk' codec can't encode` | Windows 控制台默认 GBK 编码 | MCP v1.1+ 已内置修复（强制 stdout/stderr UTF-8）；也可以设置环境变量 `PYTHONUTF8=1` |
-| 中文乱码 / 控制台打印方块 | 同上，GBK 不支持某些 Unicode 字符 | 输出写入 JSON 文件，不要直接打印到控制台 |
-| `'python' 不是内部或外部命令` | Python 没装 / 不在 PATH | 用 `py -3` 或装 Python 3.10+ |
+                // 更新操作流程步骤高亮
+                if (pageName === 'login') updateStep(1);
+                else if (pageName === 'register') updateStep(2);
+                else if (pageName === 'dashboard') updateStep(3);
 
-**Q: 如何配置蓝湖 Cookie？**
-A: 参考 `plugins/ui-or-prd-tool/mcp/lanhu-mcp/GET-COOKIE-TUTORIAL.md`
+                showToast(`已切换到 ${document.querySelector(`#page-${pageName} h1`).textContent}`, 'success');
+            }
 
-## 10. 调用示例
+            // ==========================================
+            // 更新操作流程步骤高亮
+            // ==========================================
+            function updateStep(stepNum) {
+                currentStep = stepNum;
+                for (let i = 1; i <= 3; i++) {
+                    const dot = document.getElementById(`step${i}`);
+                    dot.classList.remove('active', 'completed');
+                    dot.classList.remove('bg-green-500', 'bg-blue-500', 'bg-gray-300', 'dark:bg-gray-600');
+                    if (i < stepNum) {
+                        dot.classList.add('bg-green-500', 'completed');
+                    } else if (i === stepNum) {
+                        dot.classList.add('bg-blue-500', 'active');
+                    } else {
+                        dot.classList.add('bg-gray-300', 'dark:bg-gray-600');
+                    }
+                }
+            }
 
-```
-用户：/lanhu-requirements
-→ MCP stdio 子进程自动拉起
-→ 获取页面列表
-→ 展示需求列表给用户选择
-→ 用户选择后获取详情
-→ 输出完整需求文档
-```
+            // ==========================================
+            // Toast 通知
+            // ==========================================
+            function showToast(message, type = 'info') {
+                const container = document.getElementById('toastContainer');
+                const toast = document.createElement('div');
+
+                const colors = {
+                    success: 'bg-green-500',
+                    error: 'bg-red-500',
+                    warning: 'bg-amber-500',
+                    info: 'bg-blue-500'
+                };
+
+                const icons = {
+                    success: '✅',
+                    error: '❌',
+                    warning: '⚠️',
+                    info: 'ℹ️'
+                };
+
+                toast.className = `toast flex items-center gap-2 px-4 py-3 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700 ${colors[type]}`;
+                toast.innerHTML = `
+                    <span class="w-6 h-6 rounded-full ${colors[type]} flex items-center justify-center text-white text-sm">${icons[type]}</span>
+                    <span class="text-sm font-medium">${message}</span>
+                `;
+
+                container.appendChild(toast);
+
+                setTimeout(() => {
+                    toast.remove();
+                }, 3000);
+            }
+        </script>
+</body>
+</html>
+
+<!-- ========================================== -->
+<!-- 页面 N：Element UI 管理端风格（列表页示例） -->
+<!-- ========================================== -->
+<section id="page-xxx" class="page-section">
+    <!-- Element UI 风格配色定义（只在此页面生效） -->
+    <style>
+        .el-primary { color: #409EFF; }
+        .el-bg-primary { background-color: #409EFF; }
+        .el-success { color: #67C23A; }
+        .el-bg-success { background-color: #67C23A; }
+        .el-warning { color: #E6A23C; }
+        .el-bg-warning { background-color: #E6A23C; }
+        .el-danger { color: #F56C6C; }
+        .el-bg-danger { background-color: #F56C6C; }
+        .el-border-color { border-color: #DCDFE6; }
+        .el-bg-color { background-color: #F5F7FA; }
+        .el-text-primary { color: #303133; }
+        .el-text-regular { color: #606266; }
+        .el-text-secondary { color: #909399; }
+        .el-text-placeholder { color: #C0C4CC; }
+
+        /* Element UI 风格按钮 */
+        .el-btn-primary {
+            background-color: #409EFF;
+            border-color: #409EFF;
+            color: white;
+        }
+        .el-btn-primary:hover {
+            background-color: #66b1ff;
+            border-color: #66b1ff;
+        }
+
+        /* Element UI 风格输入框 */
+        .el-input {
+            border: 1px solid #DCDFE6;
+            border-radius: 4px;
+            padding: 0 15px;
+            height: 36px;
+            transition: all 0.2s;
+            font-size: 14px;
+        }
+        .el-input:hover {
+            border-color: #C0C4CC;
+        }
+        .el-input:focus {
+            border-color: #409EFF;
+            outline: none;
+        }
+
+        /* Element UI 风格表格 */
+        .el-table th {
+            background-color: #F5F7FA;
+            color: #909399;
+            font-weight: 500;
+        }
+        .el-table tr:hover td {
+            background-color: #F5F7FA;
+        }
+        .dark .el-table th {
+            background-color: #374151;
+        }
+        .dark .el-table tr:hover td {
+            background-color: #374151;
+        }
+
+        /* Element UI 风格标签 */
+        .el-tag {
+            padding: 0 10px;
+            height: 24px;
+            line-height: 22px;
+            font-size: 12px;
+            border-radius: 4px;
+            border: 1px solid;
+        }
+    </style>
+
+    <!-- 页面标题 + 操作区（Element UI 风格） -->
+    <div class="mb-5 flex items-center justify-between">
+        <h1 class="page-title text-xl font-medium el-text-primary">[页面标题]</h1>
+        <button class="el-btn-primary px-5 py-2 text-sm rounded transition-colors flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+            </svg>
+            新增
+        </button>
+    </div>
+
+    <!-- Element UI 风格卡片容器（小圆角、浅阴影） -->
+    <div class="bg-white dark:bg-gray-800 rounded shadow-sm p-5 mb-5">
+        <!-- 搜索筛选区域 -->
+        <div class="flex flex-wrap items-center gap-4 mb-5">
+            <div class="flex items-center gap-2">
+                <label class="text-sm el-text-regular">名称：</label>
+                <input type="text" placeholder="请输入" class="el-input w-48">
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-sm el-text-regular">状态：</label>
+                <select class="el-input w-36 bg-white dark:bg-gray-700">
+                    <option value="">全部</option>
+                    <option value="1">启用</option>
+                    <option value="0">禁用</option>
+                </select>
+            </div>
+            <div class="flex items-center gap-2">
+                <label class="text-sm el-text-regular">日期：</label>
+                <input type="date" class="el-input w-40">
+            </div>
+            <button class="el-btn-primary px-4 py-2 text-sm rounded transition-colors">
+                搜索
+            </button>
+            <button class="px-4 py-2 border el-border-color el-text-regular text-sm rounded hover:border-el-primary hover:text-el-primary transition-colors">
+                重置
+            </button>
+        </div>
+
+        <!-- Element UI 风格表格 -->
+        <div class="overflow-x-auto">
+            <table class="el-table w-full text-sm border-collapse">
+                <thead>
+                    <tr class="border-b el-border-color dark:border-gray-700">
+                        <th class="text-left py-3 px-4 font-medium">ID</th>
+                        <th class="text-left py-3 px-4 font-medium">名称</th>
+                        <th class="text-left py-3 px-4 font-medium">状态</th>
+                        <th class="text-left py-3 px-4 font-medium">创建时间</th>
+                        <th class="text-left py-3 px-4 font-medium">操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr class="border-b el-border-color dark:border-gray-700">
+                        <td class="py-3 px-4">1</td>
+                        <td class="py-3 px-4">示例数据 1</td>
+                        <td class="py-3 px-4">
+                            <span class="el-tag bg-green-50 el-success border-[#67C23A]">启用</span>
+                        </td>
+                        <td class="py-3 px-4 el-text-secondary">2024-01-15 10:30:00</td>
+                        <td class="py-3 px-4">
+                            <button class="el-primary hover:text-blue-400 text-sm mr-3">编辑</button>
+                            <button class="el-danger hover:text-red-400 text-sm">删除</button>
+                        </td>
+                    </tr>
+                    <!-- 更多数据行... -->
+                </tbody>
+            </table>
+        </div>
+
+        <!-- 分页区域 -->
+        <div class="flex items-center justify-between mt-5 pt-4 border-t el-border-color dark:border-gray-700">
+            <span class="text-sm el-text-secondary">共 100 条记录</span>
+            <div class="flex items-center gap-1">
+                <button class="w-8 h-8 border el-border-color rounded text-sm hover:border-el-primary hover:text-el-primary transition-colors">
+                    <
+                </button>
+                <button class="w-8 h-8 el-bg-primary text-white rounded text-sm">1</button>
+                <button class="w-8 h-8 border el-border-color rounded text-sm hover:border-el-primary hover:text-el-primary transition-colors">2</button>
+                <button class="w-8 h-8 border el-border-color rounded text-sm hover:border-el-primary hover:text-el-primary transition-colors">3</button>
+                <button class="w-8 h-8 border el-border-color rounded text-sm hover:border-el-primary hover:text-el-primary transition-colors">
+                    >
+                </button>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- ========================================== -->
+<!-- Element UI 管理端风格 - 表单页示例 -->
+<!-- ========================================== -->
+<section id="page-xxx-form" class="page-section hidden">

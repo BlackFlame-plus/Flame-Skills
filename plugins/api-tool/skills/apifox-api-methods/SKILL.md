@@ -1,6 +1,6 @@
 ---
 name: apifox-api-methods
-description: Use when the user wants to generate or update frontend API request methods from Apifox MCP by projectId and one or more interface names/paths/IDs. Trigger for Apifox, projectId, 接口转方法, 生成接口方法, API 方法, mock 数据, TypeScript 入参/出参类型, or converting Apifox endpoint definitions into project request functions. This skill should be used even if the user only gives a projectId plus endpoint keywords and does not explicitly say "skill".
+description: Use when the user wants to generate or update frontend API request methods from Apifox MCP. Trigger for: Apifox, projectId, 接口转方法, 生成接口方法, API 方法, mock 数据, TypeScript 入参/出参类型, Apifox links (https://app.apifox.com/link/project/.../apis/api-...), "接口ID：xxx" format, or any Apifox endpoint reference. Auto-extracts projectId and apiId from links/text. This skill should be used even if the user does not explicitly say "skill".
 ---
 
 # Apifox API Methods
@@ -11,28 +11,61 @@ Turn one or more Apifox HTTP endpoint definitions into repository-ready frontend
 
 ## Required inputs
 
-Collect or infer these before editing code:
+**Auto-extraction FIRST:** Before any other action, parse the user's message to extract IDs automatically:
 
-1. Apifox `projectId`.
-2. Target endpoint identifiers: one or more interface IDs, paths, names, or keywords.
+1. **From Apifox links:** Extract `projectId` and `apiId` from URLs like:
+   - `https://app.apifox.com/link/project/996642/apis/api-477949336`
+   - Regex: `project/(\d+)` → projectId, `api-(\d+)` → apiId
+
+2. **From text patterns:** Extract `apiId` from lines like:
+   - `接口ID：477949336` or `接口ID: 477949336`
+   - Regex: `接口ID[：:]\s*(\d+)`
+
+3. **From method + path:** Recognize endpoint references like:
+   - `POST /memberManage/edit` (treat as path keyword for search)
+
+**Then collect remaining inputs:**
+
+1. Apifox `projectId` (auto-extracted if possible; ask only if not found).
+2. Target endpoint identifiers: one or more interface IDs, paths, names, or keywords (auto-extracted if possible).
 3. Target code location, or enough context to infer the existing API module.
 4. Whether the target file is TypeScript or JavaScript.
 5. Mock data destination if the project has an existing mock convention.
 
-If the user provides only `projectId` and vague endpoint names, use Apifox structure/search tools first and ask only when multiple plausible endpoints remain.
+If auto-extraction yields both `projectId` and a specific `apiId`, proceed directly to endpoint retrieval without further questions. If the user provides only `projectId` and vague endpoint names, use Apifox structure/search tools first and ask only when multiple plausible endpoints remain.
 
-## Apifox retrieval flow
+## Apifox retrieval flow — OPTIMIZED
 
-Use a subagent for Apifox discovery and endpoint-detail collection whenever the request names a folder/module, multiple endpoints, vague keywords, or any target that requires more than one Apifox lookup. The main agent should keep codebase integration and final decisions; the subagent should return structured endpoint facts only.
+**PREFERRED TOOL PATH (fast and reliable):**
 
-1. Prefer local `.apifox/{projectId}_*.settings.json` cache when present and fresh; otherwise have the subagent call `getProjectSummary` for structure IDs.
-2. Have the subagent locate endpoints with `getStructureInfo` when the user gives folder/module context, or broader endpoint listing when they only provide keywords.
-3. Have the subagent read each selected endpoint with `readEntityDetails` or `getHttpEndpoint` so it reports method, path, parameters, request body, response schema, examples, and descriptions.
-4. Require the subagent report to include endpoint ID/name, method/path, request fields with locations and required flags, response shape, examples, missing schema notes, and any ambiguity.
-5. Do not invent endpoint IDs, paths, parameters, schemas, or examples. If Apifox data is missing, mark the missing part and use the minimal safe placeholder only after telling the user.
-6. If multiple endpoints are requested, retrieve them as a batch in the subagent and keep each method/type/mock traceable to its source endpoint.
+1. **Single endpoint with known ID:** Use `getHttpEndpoint` directly with `projectId` + `httpApiId`
+   - Returns complete structured data: method, path, parameters, request body, responses, etc.
+   - Path pattern: `GET /api/v1/projects/{projectId}/http-apis/{httpApiId}`
+   - This is the most reliable and direct method
 
-Use the main agent directly only for a single fully specified endpoint ID when one `getHttpEndpoint` or `readEntityDetails` call is enough.
+2. **Need OAS 3.0 format:** Use `readEntityDetails` with `projectId` + `entityType="endpoint"` + `entityId`
+   - Returns full OpenAPI 3.0 definition
+   - Use when you need standard OAS format for code generators
+
+3. **Search/lookup by name/path/keyword:** Use `getStructureInfo` with `projectId` + `entityType="endpoint"`
+   - Returns endpoint list with IDs, names, paths
+   - Use this when you don't know the exact endpoint ID
+
+**Subagent usage rules:**
+
+- Use a subagent for Apifox discovery only when: multiple endpoints, folder/module scope, or vague keywords
+- Single known endpoint ID → main agent directly, no subagent needed
+- Main agent handles codebase integration; subagent returns structured facts only
+
+**Required subagent report format:**
+- Endpoint ID/name and method/path
+- Request fields with locations (path/query/body/header) and required flags
+- Response shape with field types
+- Examples if available
+- Missing schema notes
+- Ambiguity notes (multiple matching endpoints, etc.)
+
+Never invent endpoint IDs, paths, parameters, or schemas. Use minimal safe placeholders only after notifying the user.
 
 ## Codebase integration flow
 
