@@ -1,7 +1,7 @@
 {
   "name": "api-tool",
-  "description": "Frontend API workflow skill for generating request methods from Apifox.",
-  "version": "1.2.0",
+  "description": "Frontend API workflow skill for generating request methods from Apifox (v1.3: MCP 缺失时 AI 自动配置, 禁止 fetch/HTTP 绕过, 主动索要 API Key 并写入 ~/.claude.json).",
+  "version": "1.3.0",
   "author": {
     "name": "liuzhengri"
   },

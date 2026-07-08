@@ -5,6 +5,84 @@ description: Use when the user wants to generate or update frontend API request 
 
 # Apifox API Methods
 
+## 0. ⛔ MCP 前置检查 · AI 自动配置（强制卡点 · 零例外）
+
+> 🚨🚨🚨 **本节是硬性强制规则，任何要调用 apifox-new-mcp 工具的场景都必须先过这一关。**
+>
+> - ⛔ **禁止**在 apifox-new-mcp 不可用时用 `WebFetch` / `httpx` / `curl` / Playwright 等任何方式绕过 MCP 直接调 Apifox Open API
+> - ⛔ **禁止**告诉用户"MCP 没配，我先用 HTTP 抓一下凑合"
+> - ⛔ **禁止**让用户自己手动编辑配置文件——**AI 必须主动索要 API Key 并替用户完成配置**
+> - ⛔ 用户的真实诉求是"把 MCP 配好"，不是"换个方法凑合"
+
+### 检测方式
+
+在执行任何 Apifox 操作前，先判断 `mcp__apifox-new-mcp__*` 工具是否可用：
+
+- ✅ 工具可用（能看到 `mcp__apifox-new-mcp__listAccessibleProjects`、`mcp__apifox-new-mcp__getHttpEndpoint` 等）→ 直接进入第 1 节正常流程
+- ❌ 工具不可用 / 调用返回"找不到 MCP"/连接错误 → **必须**触发下方"AI 自动配置流程"，禁止继续业务流程
+
+### ⛔ AI 自动配置流程（禁止让用户手动写配置）
+
+**第 1 步：向用户索要 Apifox Personal Access Token**
+
+直接把下面这段话发给用户（一字不改，不要加多余解释）：
+
+```
+🔧 检测到 Apifox MCP 还未配置，我来帮你自动配好，需要你提供一下 Apifox 的 API Key：
+
+1. 打开 Apifox 网页版/客户端，登录后点击左下角头像 →「个人账号设置」→「API 访问令牌」（或直接访问 https://app.apifox.com/user/openapi ）
+2. 点击「新建令牌」，名字随便填（比如"Claude Code"），复制生成的 Token（以 afxp_ 开头的字符串）
+3. 把 Token 直接粘贴发给我就行，我来自动写入配置文件，你不需要动任何文件。
+```
+
+**第 2 步：收到 Token 后，AI 直接写入用户级配置**
+
+1. 用 Read 工具读取用户级配置文件：
+   - Windows：`C:\Users\<用户名>\.claude.json`（用 `~/.claude.json` 即可，工具会自动解析）
+   - Mac/Linux：`~/.claude.json`
+2. 解析 JSON，在 `mcpServers` 字段下加入/更新 `apifox-new-mcp` 条目：
+
+```json
+{
+  "mcpServers": {
+    "apifox-new-mcp": {
+      "type": "http",
+      "url": "https://api.apifox.com/mcp",
+      "headers": {
+        "Authorization": "Bearer <用户粘贴的afxp_开头Token>",
+        "X-Apifox-Api-Version": "2025-09-01"
+      }
+    }
+  }
+}
+```
+
+   注意：
+   - `mcpServers` 字段不存在就新建
+   - 已存在其它 MCP server（如 apifox-new-mcp 之外的条目）必须保留，不能覆盖
+   - 如果已经有 `apifox-new-mcp` 旧条目，用新的覆盖
+   - JSON 必须合法，写入前用 Node/Python 做一次 `JSON.parse` 校验防止写坏
+3. 写入完成后告诉用户：
+
+```
+✅ 已自动把 Apifox MCP 配置写入 <配置文件路径>。
+请重启 Claude Code（关闭窗口重新打开）让 MCP 生效，然后回来告诉我"重启好了"我再继续。
+```
+
+**第 3 步：等待用户重启确认**
+
+- ⛔ 用户说"重启好了"之前，**禁止**继续走后续 Apifox 业务流程
+- ⛔ 禁止用户没重启就开始试调用——第一次一定会失败，浪费一次往返
+
+### Token 过期/401 场景
+
+如果 MCP 可调用但返回 401 Unauthorized / Token 失效：
+1. 告诉用户 Token 已过期
+2. 按上述第 1-2 步重新索要新 Token 并覆盖写入原文件
+3. 提示重启 Claude Code
+
+---
+
 ## Goal
 
 Turn one or more Apifox HTTP endpoint definitions into repository-ready frontend API methods, TypeScript request/response types when applicable, concise comments, and mock data that matches the endpoint schema.
@@ -127,6 +205,8 @@ When done, report:
 
 | Pitfall | Better approach |
 | --- | --- |
+| MCP 不可用时用 WebFetch/httpx/curl 直接调 Apifox API | ⛔ 绝对禁止！必须按第 0 节自动配置流程向用户索要 API Key 并写入 ~/.claude.json |
+| 让用户自己手动编辑 .claude.json / mcp.json | ⛔ 绝对禁止！AI 必须用 Edit/Write 工具替用户完成写入 |
 | Guessing an endpoint from a similar name | Search Apifox and confirm the exact endpoint. |
 | Dropping required path/query params | Map all Apifox parameter locations explicitly. |
 | Using `any` for convenience | Use schema-derived types; use `unknown` only for genuinely unknown shapes. |

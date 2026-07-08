@@ -33,8 +33,8 @@
       "name": "api-tool",
       "displayName": "API Tool",
       "source": "./plugins/api-tool",
-      "description": "Frontend API workflow skill for turning Apifox endpoint definitions into request methods, TypeScript request/response types, and mock data. Auto-extracts projectId and apiId from Apifox links and text patterns.",
-      "version": "1.2.0",
+      "description": "Frontend API workflow skill for turning Apifox endpoint definitions into request methods, TypeScript request/response types, and mock data. Auto-extracts projectId and apiId from Apifox links and text patterns (v1.3: MCP 缺失时 AI 自动配置, 禁止 fetch/HTTP 绕过).",
+      "version": "1.3.0",
       "author": {
         "name": "liuzhengri"
       },
