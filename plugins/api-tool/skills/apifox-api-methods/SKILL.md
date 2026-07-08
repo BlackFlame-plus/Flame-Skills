@@ -1,6 +1,6 @@
 ---
 name: apifox-api-methods
-description: Use when the user wants to generate or update frontend API request methods from Apifox MCP. Trigger for: Apifox, projectId, 接口转方法, 生成接口方法, API 方法, mock 数据, TypeScript 入参/出参类型, Apifox links (https://app.apifox.com/link/project/.../apis/api-...), "接口ID：xxx" format, or any Apifox endpoint reference. Auto-extracts projectId and apiId from links/text. This skill should be used even if the user does not explicitly say "skill".
+description: Apifox 接口转前端代码工具。当用户提到 Apifox/apifox/接口文档/接口定义/API文档/接口管理/接口对接/对接接口/写接口/调接口/接口方法/api方法/生成接口/新增接口/接口入参/接口出参/请求参数/响应字段/返回值类型/TS类型/TypeScript类型/接口类型/接口mock/mock数据/接口ID/接口地址/apiId/projectId，或贴出 Apifox 链接（https://app.apifox.com/ 或 https://apifox.com/ 开头，含 project/数字/apis/api-数字 或 /link/project/数字/apis/api-数字），或说"帮我对接一下xxx接口"、"把这个Apifox接口转成代码"、"根据Apifox生成请求方法"、"生成接口TS类型"、"写个mock"等任何涉及 Apifox 接口数据转前端代码的场景时必须触发。即使用户没明确说"用skill"也要触发。即便只有 1% 的可能相关也要调用本 skill，不可用通用代码生成替代。
 ---
 
 # Apifox API Methods
