@@ -15,17 +15,34 @@ from typing import Annotated, Optional, Union, List, Any
 
 # 加载 .env 文件中的环境变量（必须在其他导入之前）
 # 注意：在 Docker 容器中，环境变量通常已由 docker-compose 通过 env_file 设置
-# load_dotenv() 默认不会覆盖已存在的环境变量，所以与 Docker Compose 兼容
+# load_dotenv() 默认不会覆盖已存在的环境变量，所以与 Docker Compose / Claude mcp.json env 兼容
+#
+# 配置文件查找顺序（优先级从低到高，高优先级会覆盖低优先级同名变量）：
+#   1) 当前工作目录 .env                              — 兼容本地开发/容器启动
+#   2) MCP 安装目录 .env                              — 向后兼容（⚠️ 插件更新可能覆盖）
+#   3) 用户全局配置  ~/.claude/lanhu-mcp.env          — AI 默认写入位置，一次配置全局生效
+#   4) 项目级配置  <cwd>/.claude/lanhu-mcp.env        — 最高优先级文件配置，允许项目覆盖
+# 系统/进程环境变量（Claude mcp.json 的 env 字段 / shell 环境）优先级最高，不会被任何 .env 覆盖。
 try:
     from dotenv import load_dotenv
-    # 从项目根目录加载 .env 文件（如果存在）
-    # override=False 确保不会覆盖已存在的环境变量（如 Docker Compose 设置的）
-    env_path = Path(__file__).parent / '.env'
-    if env_path.exists():
-        load_dotenv(env_path, override=False)
-    else:
-        # 如果 .env 文件不存在，尝试从当前目录加载（用于本地开发）
-        load_dotenv(override=False)
+
+    # 1. 工作目录 .env（最低优先级）
+    load_dotenv(Path.cwd() / '.env', override=False)
+
+    # 2. MCP 安装目录 .env（向后兼容）
+    _plugin_env = Path(__file__).parent / '.env'
+    if _plugin_env.exists():
+        load_dotenv(_plugin_env, override=True)
+
+    # 3. 用户全局配置 ~/.claude/lanhu-mcp.env（AI 默认写入位置）
+    _user_env = Path.home() / '.claude' / 'lanhu-mcp.env'
+    if _user_env.exists():
+        load_dotenv(_user_env, override=True)
+
+    # 4. 项目级配置 <cwd>/.claude/lanhu-mcp.env（最高优先级，允许单项目覆盖）
+    _project_env = Path.cwd() / '.claude' / 'lanhu-mcp.env'
+    if _project_env.exists():
+        load_dotenv(_project_env, override=True)
 except ImportError:
     # 如果 python-dotenv 未安装，跳过加载（使用系统环境变量）
     pass
@@ -103,8 +120,47 @@ def check_required_config() -> "Optional[ConfigurationError]":
     返回 None 表示通过；返回 ConfigurationError 表示缺失（带 setup_guide）。
 
     设计目的：MCP 启动时不强依赖 .env，仅在首次调用需要 cookie 的工具时检查。
-    调用方应捕获 ConfigurationError 并把 setup_guide 作为工具结果返回给用户。
+    调用方（AI）应捕获 ConfigurationError 并按引导自动完成配置（不要让用户手动写文件）。
+
+    配置文件加载顺序（低 → 高，高优先级覆盖低优先级同名变量）：
+      1) 工作目录 .env
+      2) MCP 安装目录 .env（<plugin>/mcp/lanhu-mcp/.env，⚠️ 插件更新可能覆盖）
+      3) 用户全局配置 ~/.claude/lanhu-mcp.env（AI 默认写入位置，一次配置全局生效）
+      4) 项目级配置 <cwd>/.claude/lanhu-mcp.env（最高优先级文件配置，允许单项目覆盖）
+      5) 系统/进程环境变量（mcp.json 的 env 字段、shell 环境）——最高优先级
     """
+    if _is_cookie_unset(COOKIE):
+        user_env = Path.home() / '.claude' / 'lanhu-mcp.env'
+        project_env = Path.cwd() / '.claude' / 'lanhu-mcp.env'
+        plugin_env = Path(__file__).parent / '.env'
+        example_path = Path(__file__).parent / '.env.example'
+        guide = {
+            "status": "config_missing",
+            "missing": ["LANHU_COOKIE"],
+            "user_env_path": str(user_env),
+            "project_env_path": str(project_env),
+            "plugin_env_path": str(plugin_env),
+            "example_path": str(example_path),
+            "ai_instruction": (
+                "请按以下流程帮用户配置（不要让用户手动写文件）：\n"
+                "1. 用简短的话告诉用户需要提供蓝湖 Cookie\n"
+                "2. 指引用户如何在蓝湖网页复制 Cookie（附教程链接）\n"
+                "3. 等用户把 Cookie 粘贴过来\n"
+                f"4. 用 Write 工具直接写入全局配置文件 {user_env}（默认位置，一次配置全局生效），"
+                f"   文件内容就一行：LANHU_COOKIE=\"<用户粘贴的cookie>\"\n"
+                "   如果用户明确要求仅当前项目生效，则写入项目级配置。\n"
+                "5. 写入前确保父目录 .claude/ 存在（如不存在先创建）\n"
+                "6. 写入后告诉用户需要重启 Claude Code 生效"
+            ),
+            "tutorial_link": "https://github.com/lanhu-mcp/lanhu-mcp/blob/main/GET-COOKIE-TUTORIAL.md",
+        }
+        message = (
+            "🔧 蓝湖 MCP 还未配置 LANHU_COOKIE。\n"
+            "AI 请读取 setup_guide.ai_instruction 自动完成配置，不要让用户手动创建/编辑文件。\n"
+            f"\n📖 Cookie 获取教程：{guide['tutorial_link']}"
+        )
+        return ConfigurationError(message, guide)
+    return None
 
 
 def _get_default_output_dir() -> Path:
@@ -119,26 +175,6 @@ def _get_default_output_dir() -> Path:
     如果调用方显式传了 output_dir，则优先用调用方的。
     """
     return Path.cwd() / '.claude' / 'lanhu'
-    if _is_cookie_unset(COOKIE):
-        env_path = Path(__file__).parent / '.env'
-        example_path = env_path.parent / '.env.example'
-        guide = {
-            "status": "config_missing",
-            "missing": ["LANHU_COOKIE"],
-            "env_path": str(env_path),
-            "example_path": str(example_path),
-            "tutorial_link": "https://github.com/lanhu-mcp/lanhu-mcp/blob/main/GET-COOKIE-TUTORIAL.md",
-        }
-        message = (
-            "🔧 蓝湖 MCP 还未配置 LANHU_COOKIE，请按以下步骤完成初始化：\n"
-            f"   1. 复制模板：cp \"{example_path}\" \"{env_path}\"\n"
-            f"   2. 编辑 \"{env_path}\"，把 LANHU_COOKIE 改成你的真实 Cookie\n"
-            "      （替换 your_lanhu_cookie_here，Cookie 获取方法见教程）\n"
-            "   3. 重启 Claude Code / Cursor 让新配置生效\n"
-            f"   详细教程：{guide['tutorial_link']}"
-        )
-        return ConfigurationError(message, guide)
-    return None
 
 
 # 全局配置（不需要校验的部分）

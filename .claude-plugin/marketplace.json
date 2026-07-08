@@ -22,8 +22,8 @@
       "name": "ui-or-prd-tool",
       "displayName": "UI or PRD Tool",
       "source": "./plugins/ui-or-prd-tool",
-      "description": "Frontend UI and PRD workflow skills for Figma context retrieval, design-to-code implementation, Playwright visual verification, and Lanhu requirements retrieval (v3.3: remove global scan, always use mode=full, user must select scope).",
-      "version": "1.7.0",
+      "description": "Frontend UI and PRD workflow skills for Figma context retrieval, design-to-code implementation, Playwright visual verification, and Lanhu requirements retrieval (v3.4: Cookie 用户级/项目级外部配置，AI 自动写入全局 ~/.claude/lanhu-mcp.env，插件更新不丢配置).",
+      "version": "1.8.0",
       "author": {
         "name": "liuzhengri"
       },
