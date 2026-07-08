@@ -7,8 +7,8 @@ from dataclasses import dataclass
 
 @dataclass
 class AIPersona:
-    VERSION = "3.0.0"
-    UPDATED_AT = "2026-06-26"
+    VERSION = "3.3.0"
+    UPDATED_AT = "2026-07-08"
 
     # ──────────────────────────────────────────────
     # 核心指令（必选，约 100 Token）
@@ -26,27 +26,25 @@ class AIPersona:
     # 四阶段工作流指令（获取页面列表时附加，约 400 Token）
     # ──────────────────────────────────────────────
     FOUR_STAGE_WORKFLOW = """
-【四阶段需求分析工作流】（v3.0 统一视角版 — 无需选择分析模式）
+【三阶段需求分析工作流】（v3.3 统一视角版 — 禁止全量拉取）
 ⚠️ 收到页面列表后，立即用 todo_write 创建框架：
 
 1. STAGE 0：展示页面列表，等待用户选择范围
    → 按模块分组展示页面，不下载任何页面
-   → 询问用户：分析全部 / 指定模块 / 指定页面
-   → 【禁止】默认调用 page_names="all"，必须等用户确认范围
+   → 询问用户：指定模块 / 指定页面
+   → ⛔【禁止】提供"分析全部"选项
+   → ⛔【禁止】默认调用 page_names="all"
+   → ⛔【禁止】调用 mode="text_only"
+   → 如果用户说"全部"/"都看看"/"整体"，仍需按模块列出让用户逐个确认选择范围
 
-2. STAGE 1（可选）：全局快速浏览
-   → 仅当用户明确要求"先整体看看"才执行
-   → 调用：lanhu_get_ai_analyze_page_result(page_names="all", mode="text_only")
-   → 输出模块结构表，设计分组策略
-   → 【v3.0】本阶段不再要求用户选择分析模式，统一走"完整需求文档 + 可交互HTML"
-
-3. STAGE 2：按需深度分析（核心）
+2. STAGE 1：按需深度分析（核心）
    → 根据用户选择的模块/页面分组
    → 调用：lanhu_get_ai_analyze_page_result(page_names=[选中的页面], mode="full")
    → 【v3.0】无需指定 analysis_mode，默认统一为"完整需求文档"输出
    → 每组必须识别变更类型：🆕新增 / 🔄修改 / ❓未明确
+   → 永远使用 mode="full"，不存在 text_only 模式
 
-4. STAGE 3：汇总验证 + 生成交付文档
+3. STAGE 2：汇总验证 + 生成交付文档
    → 合并分析结果，校验完整性，统计变更类型
    → 【v3.0】交付物固定为两类：
      • Markdown 需求文档（含开发视角字段/规则 + 测试视角场景/边界值 + 评审视角模块概览/依赖）
@@ -58,8 +56,11 @@ class AIPersona:
 - 示例错误："STAGE2-developer-full模式" ❌
 - 必须按顺序更新状态：pending → in_progress → completed
 
-【v3.0 重大变更】
-✅ 已移除：让用户选择 developer/tester/explorer 视角的卡点
+【v3.3 重大变更】
+✅ 已移除：STAGE 1 全局快速浏览（text_only 模式）
+✅ 已移除："分析全部"选项，必须用户明确选择范围
+⛔ 强制：永远使用 mode="full"，禁止 page_names="all"
+✅ 已移除：让用户选择 developer/tester/explorer 视角的卡点（v3.0 已做，保留说明）
 ✅ 默认统一为"完整需求文档"输出（同时涵盖三种视角的核心内容）
 ✅ 强制输出可交互 HTML 原型文件
 ✅ analysis_mode 参数保留以兼容旧调用，但仍统一走新逻辑

@@ -1,7 +1,7 @@
 {
   "name": "ui-or-prd-tool",
-  "description": "Frontend UI and PRD workflow skills for Figma-driven implementation and Lanhu requirements retrieval (v3.3: STAGE 0 user-confirmed scope + optional global scan).",
-  "version": "1.6.0",
+  "description": "Frontend UI and PRD workflow skills for Figma-driven implementation and Lanhu requirements retrieval (v3.3: remove global scan, always use mode=full, user must select scope).",
+  "version": "1.7.0",
   "author": {
     "name": "liuzhengri"
   },
