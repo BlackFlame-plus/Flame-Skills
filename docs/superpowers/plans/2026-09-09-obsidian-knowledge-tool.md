@@ -6,7 +6,7 @@
 
 **Architecture:** A bundled TypeScript stdio MCP server calls Obsidian Local REST API through a focused client. Pure governance functions validate paths, metadata, lifecycle transitions, and content hashes before mutation. The plugin also ships a Skill that teaches agents the intended workflow.
 
-**Tech Stack:** Node.js 20, TypeScript 5.9.3, `@modelcontextprotocol/sdk` 1.29.0, Zod 4.5.4, Vitest 4.1.11, esbuild 0.28.2.
+**Tech Stack:** Node.js 20, TypeScript 5.9.3, `@modelcontextprotocol/sdk` 1.29.0, Zod 4.5.4, Vitest 3.2.7, esbuild 0.28.2, Undici 6.28.1.
 
 ## Global Constraints
 

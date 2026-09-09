@@ -69,7 +69,11 @@ tool is exposed in V1.
 - Archive destinations are limited to `50_Archive`.
 - All paths are normalized and checked against traversal.
 - Markdown filenames are generated or validated by the server.
-- Required frontmatter is generated for captures and validated before moves.
+- Required frontmatter, including `reviewed`, is generated for captures and
+  validated before moves.
+- Promotion requires complete destination Markdown with `reviewed: true`;
+  Knowledge and Output destinations enforce their matching `type`.
+- Archive moves update the note to `status: archived`.
 - Existing destinations are never overwritten.
 - Move operations require the caller to provide the source content hash,
   preventing accidental overwrites after concurrent edits.
