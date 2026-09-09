@@ -36,3 +36,9 @@ them; never delete the destination as recovery.
 The server changes archived notes to `status: archived`. Notes promoted into
 `30_Knowledge` require `type: knowledge`; notes promoted into non-draft
 `40_Output` require `type: output`.
+
+## Conversation candidates
+
+For automatic milestone and conversation-end evaluation, use the
+`conversation-knowledge-triage` Skill. Its accepted candidates remain ordinary
+AI drafts and follow the same validation, review, promotion, and archive rules.
