@@ -30,12 +30,12 @@ front-skills/
 
 ## 安装方式
 
-### 方式一：从 GitLab 市场安装
+### 方式一：从 GitHub 市场安装
 
 先添加市场：
 
 ```text
-/plugin marketplace add https://gitlab.jctrans.net.cn/liuzhengri/front-skills.git
+/plugin marketplace add https://github.com/BlackFlame-plus/Flame-Skills.git
 ```
 
 按需安装插件：

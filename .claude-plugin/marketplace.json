@@ -2,7 +2,7 @@
   "$schema": "https://code.claude.com/schemas/plugin-marketplace.json",
   "name": "front-skills-market",
   "description": "JcCode frontend Claude Code skills marketplace.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "owner": {
     "name": "liuzhengri"
   },
@@ -12,11 +12,11 @@
       "displayName": "SEO Tool",
       "source": "./plugins/seo-tool",
       "description": "Frontend SEO workflow skill for metadata, crawlable links, semantic headings, images, pagination, canonical URLs, structured data, i18n SEO values, and SSR SEO loading.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "liuzhengri"
       },
-      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+      "repository": "https://github.com/BlackFlame-plus/Flame-Skills"
     },
     {
       "name": "ui-or-prd-tool",
@@ -27,7 +27,7 @@
       "author": {
         "name": "liuzhengri"
       },
-      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+      "repository": "https://github.com/BlackFlame-plus/Flame-Skills"
     },
     {
       "name": "api-tool",
@@ -38,18 +38,18 @@
       "author": {
         "name": "liuzhengri"
       },
-      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+      "repository": "https://github.com/BlackFlame-plus/Flame-Skills"
     },
     {
       "name": "work-tool",
       "displayName": "Work Tool",
       "source": "./plugins/work-tool",
       "description": "工作台工具集，包含 Jira 工时表周报生成等功能",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "liuzhengri"
       },
-      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+      "repository": "https://github.com/BlackFlame-plus/Flame-Skills"
     },
     {
       "name": "obsidian-knowledge-tool",
@@ -60,7 +60,7 @@
       "author": {
         "name": "liuzhengri"
       },
-      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+      "repository": "https://github.com/BlackFlame-plus/Flame-Skills"
     }
   ]
 }
