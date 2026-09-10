@@ -17,7 +17,8 @@ overwrites, deletes, Obsidian commands, or attachment uploads.
 4. Read the source immediately before moving it and retain the returned hash.
 5. Rewrite the note into the destination template. Preserve the source
    evidence, set destination-appropriate `type` and `status`, and set
-   `reviewed: true` only after human review.
+   `reviewed: true` after human review **or** after conversation triage
+   auto-promotion (`auto_promoted: true` per Vault policy).
 6. Promote with `obsidian_promote_note`, supplying the source hash and the
    complete reviewed destination Markdown as `destinationContent`.
 7. Archive eligible material with `obsidian_archive_note`, again supplying the
@@ -34,11 +35,12 @@ reports a duplicate state, preserve both files and ask a human to reconcile
 them; never delete the destination as recovery.
 
 The server changes archived notes to `status: archived`. Notes promoted into
-`30_Knowledge` require `type: knowledge`; notes promoted into non-draft
+`30_Knowledge` require `type: knowledge` or `type: decision`; notes promoted
+into `10_Projects` require `type: project`; notes promoted into non-draft
 `40_Output` require `type: output`.
 
 ## Conversation candidates
 
 For automatic milestone and conversation-end evaluation, use the
-`conversation-knowledge-triage` Skill. Its accepted candidates remain ordinary
-AI drafts and follow the same validation, review, promotion, and archive rules.
+`conversation-knowledge-triage` Skill. Qualifying non-conflict candidates are
+drafted then auto-promoted per Vault triage policy.

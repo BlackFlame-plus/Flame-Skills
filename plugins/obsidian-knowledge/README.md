@@ -6,7 +6,7 @@
 - MCP 服务负责强制目录、Properties、内容哈希和禁止覆盖规则。
 - Obsidian Local REST API 负责连接正在运行的 Obsidian Vault。
 
-当前版本 `0.3.0`，已登记到本仓库插件市场 `flame-skills`。
+当前版本 `0.4.0`，已登记到本仓库插件市场 `flame-skills`。
 
 ## 前置条件
 
@@ -54,9 +54,6 @@ Cursor 若不通过插件加载，可在自己的 `mcp.json` 中启动
 ## 会话知识自动评判
 
 `conversation-knowledge-triage` Skill 在形成有意义的里程碑和会话结束时评判
-对话。达到阈值的结论、决策、待办、偏好和项目更新会按原子条目自动保存到
-`40_Output/AI-Drafts`。
-
-该行为需要客户端主动调用 Skill 或遵循 Vault 的 `AGENTS.md`。Skill 本身不能
-读取所有 AI 工具的私有历史记录，也不能保证不支持规则或 Hook 的客户端触发。
-自动保存的内容保持 `reviewed: false`，必须人工复核后才能晋升。
+对话。达到阈值的结论、决策、待办、偏好和项目更新会按原子条目先写入
+`40_Output/AI-Drafts`；非冲突候选会自动晋升（`reviewed: true` +
+`auto_promoted: true`）。冲突类仍须人工复核。

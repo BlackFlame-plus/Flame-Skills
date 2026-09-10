@@ -118,10 +118,19 @@ export function createToolHandlers(client: KnowledgeClient) {
       }
       if (
         transition.destination.startsWith("30_Knowledge/") &&
-        destinationProperties.type !== "knowledge"
+        destinationProperties.type !== "knowledge" &&
+        destinationProperties.type !== "decision"
       ) {
         destinationIssues.push(
-          "Notes promoted to 30_Knowledge must have type: knowledge."
+          "Notes promoted to 30_Knowledge must have type: knowledge or decision."
+        );
+      }
+      if (
+        transition.destination.startsWith("10_Projects/") &&
+        destinationProperties.type !== "project"
+      ) {
+        destinationIssues.push(
+          "Notes promoted to 10_Projects must have type: project."
         );
       }
       if (

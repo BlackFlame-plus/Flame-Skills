@@ -56,12 +56,20 @@ for (const token of [
   "candidate_type",
   "conversation_client",
   "reviewed: false",
-  "ai_index: false"
+  "ai_index: false",
+  "auto_promoted"
 ]) {
   assert.ok(policy.includes(token), `policy missing ${token}`);
-  assert.ok(template.includes(token), `template missing ${token}`);
+  assert.ok(
+    template.includes(token) || token === "auto_promoted",
+    `template missing ${token}`
+  );
   assert.ok(skill.includes(token), `skill missing ${token}`);
 }
+
+assert.ok(template.includes("auto_promoted"));
+assert.ok(policy.includes("自动晋升") || policy.includes("auto-promote"));
+assert.ok(skill.includes("Auto-promote") || skill.includes("auto-promote"));
 
 for (const boundary of ["40_Output/AI-Drafts", "never overwrite", "不得覆盖"]) {
   assert.ok(
@@ -73,8 +81,8 @@ for (const boundary of ["40_Output/AI-Drafts", "never overwrite", "不得覆盖"
 assert.match(policy, /at least 6|至少 6 分/);
 assert.match(skill, /milestone|里程碑/);
 assert.match(skill, /conversation end|会话结束/);
-assert.equal(manifest.version, "0.3.0");
+assert.equal(manifest.version, "0.4.0");
 assert.ok(marketplace.includes('"obsidian-knowledge"'));
-assert.ok(marketplace.includes('"version": "0.3.0"'));
+assert.ok(marketplace.includes('"version": "0.4.0"'));
 
 console.log("Conversation triage contract verified.");
