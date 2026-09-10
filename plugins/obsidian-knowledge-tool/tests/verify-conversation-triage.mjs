@@ -74,6 +74,7 @@ assert.match(policy, /at least 6|至少 6 分/);
 assert.match(skill, /milestone|里程碑/);
 assert.match(skill, /conversation end|会话结束/);
 assert.equal(manifest.version, "0.2.0");
-assert.ok(!marketplace.includes('"obsidian-knowledge-tool"'));
+assert.ok(marketplace.includes('"obsidian-knowledge-tool"'));
+assert.ok(marketplace.includes('"version": "0.2.0"'));
 
 console.log("Conversation triage contract verified.");

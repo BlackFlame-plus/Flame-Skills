@@ -6,7 +6,7 @@
 - MCP 服务负责强制目录、Properties、内容哈希和禁止覆盖规则。
 - Obsidian Local REST API 负责连接正在运行的 Obsidian Vault。
 
-当前版本是本地原型，未登记到插件市场。
+当前版本 `0.2.0`，已登记到本仓库插件市场 `front-skills-market`。
 
 ## 前置条件
 

@@ -50,6 +50,17 @@
         "name": "liuzhengri"
       },
       "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
+    },
+    {
+      "name": "obsidian-knowledge-tool",
+      "displayName": "Obsidian Knowledge Tool",
+      "source": "./plugins/obsidian-knowledge-tool",
+      "description": "受治理的 Obsidian 知识库 MCP 与 Skill：Inbox 采集、AI 草稿、Properties 校验、内容哈希晋升/归档，以及会话知识自动评判（v0.2.0）。依赖 Obsidian Local REST API。",
+      "version": "0.2.0",
+      "author": {
+        "name": "liuzhengri"
+      },
+      "repository": "https://gitlab.jctrans.net.cn/liuzhengri/front-skills"
     }
   ]
 }
