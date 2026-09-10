@@ -1,8 +1,8 @@
 {
   "$schema": "https://code.claude.com/schemas/plugin-marketplace.json",
-  "name": "front-skills-market",
-  "description": "JcCode frontend Claude Code skills marketplace.",
-  "version": "1.1.0",
+  "name": "flame-skills",
+  "description": "Flame Skills — Claude Code / Cursor plugin marketplace for workflow skills and tools.",
+  "version": "1.2.0",
   "owner": {
     "name": "liuzhengri"
   },
@@ -12,7 +12,7 @@
       "displayName": "SEO Tool",
       "source": "./plugins/seo-tool",
       "description": "Frontend SEO workflow skill for metadata, crawlable links, semantic headings, images, pagination, canonical URLs, structured data, i18n SEO values, and SSR SEO loading.",
-      "version": "1.1.0",
+      "version": "1.0.0",
       "author": {
         "name": "liuzhengri"
       },
@@ -45,7 +45,7 @@
       "displayName": "Work Tool",
       "source": "./plugins/work-tool",
       "description": "工作台工具集，包含 Jira 工时表周报生成等功能",
-      "version": "1.1.0",
+      "version": "1.0.0",
       "author": {
         "name": "liuzhengri"
       },

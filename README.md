@@ -1,12 +1,14 @@
-# Front Skills
+# Flame Skills
 
-面向 Claude Code 的前端工作流 Skill 插件市场，结构对齐 Claude Code 官方插件仓库/市场规范。
+面向 Claude Code / Cursor 的工作流 Skill 插件市场，结构对齐 Claude Code 官方插件仓库/市场规范。
 
-当前市场包含 3 个独立插件类型：
+当前市场包含的插件类型：
 
 - `seo-tool`：SEO 工作流插件
 - `ui-or-prd-tool`：Figma / UI 实现与验证 + 蓝湖 PRD 需求获取插件
 - `api-tool`：Apifox / API 方法生成插件
+- `work-tool`：工作台工具（如 Jira 工时周报）
+- `obsidian-knowledge-tool`：受治理的 Obsidian 知识库 MCP 与 Skill
 
 ## 仓库结构
 
@@ -41,9 +43,9 @@ front-skills/
 按需安装插件：
 
 ```text
-/plugin install seo-tool@front-skills-market
-/plugin install ui-or-prd-tool@front-skills-market
-/plugin install api-tool@front-skills-market
+/plugin install seo-tool@flame-skills
+/plugin install ui-or-prd-tool@flame-skills
+/plugin install api-tool@flame-skills
 ```
 
 安装后执行：
@@ -92,9 +94,9 @@ claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --p
 
 ```text
 /plugin marketplace add D:/jcCode/AI_project/front-skills
-/plugin install seo-tool@front-skills-market
-/plugin install ui-or-prd-tool@front-skills-market
-/plugin install api-tool@front-skills-market
+/plugin install seo-tool@flame-skills
+/plugin install ui-or-prd-tool@flame-skills
+/plugin install api-tool@flame-skills
 ```
 
 ## 已包含插件
@@ -128,10 +130,10 @@ claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --p
 推送到 GitLab 后，已添加该 marketplace 的用户可以执行：
 
 ```text
-/plugin marketplace update front-skills-market
-/plugin update seo-tool@front-skills-market
-/plugin update ui-or-prd-tool@front-skills-market
-/plugin update api-tool@front-skills-market
+/plugin marketplace update flame-skills
+/plugin update seo-tool@flame-skills
+/plugin update ui-or-prd-tool@flame-skills
+/plugin update api-tool@flame-skills
 /reload-plugins
 ```
 
@@ -141,3 +143,4 @@ claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --p
 - Skill 作为插件安装后会自动带命名空间，避免和其他插件或项目本地 Skill 冲突。
 - `ui-or-prd-tool` 同时承载 UI 设计稿工作流和 PRD/蓝湖需求获取工作流。
 - 拆成 `seo-tool`、`ui-or-prd-tool`、`api-tool` 后，用户可以按需安装，而不是一次安装全部前端 Skill。
+

@@ -6,7 +6,7 @@
 - MCP 服务负责强制目录、Properties、内容哈希和禁止覆盖规则。
 - Obsidian Local REST API 负责连接正在运行的 Obsidian Vault。
 
-当前版本 `0.2.0`，已登记到本仓库插件市场 `front-skills-market`。
+当前版本 `0.2.0`，已登记到本仓库插件市场 `flame-skills`。
 
 ## 前置条件
 
@@ -60,3 +60,4 @@ Cursor 若不通过插件加载，可在自己的 `mcp.json` 中启动
 该行为需要客户端主动调用 Skill 或遵循 Vault 的 `AGENTS.md`。Skill 本身不能
 读取所有 AI 工具的私有历史记录，也不能保证不支持规则或 Hook 的客户端触发。
 自动保存的内容保持 `reviewed: false`，必须人工复核后才能晋升。
+
