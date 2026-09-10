@@ -1,7 +1,7 @@
 {
-  "name": "ui-or-prd-tool",
+  "name": "ui-or-prd",
   "description": "Frontend UI and PRD workflow skills for Figma-driven implementation and Lanhu requirements retrieval (v3.5: STAGE 1 强制子agent并行分析, 按页面量分批防止上下文爆炸; Cookie 用户级/项目级外部配置).",
-  "version": "1.9.0",
+  "version": "1.10.0",
   "author": {
     "name": "liuzhengri"
   },

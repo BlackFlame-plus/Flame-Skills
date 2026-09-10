@@ -4,30 +4,37 @@
 
 当前市场包含的插件类型：
 
-- `seo-tool`：SEO 工作流插件
-- `ui-or-prd-tool`：Figma / UI 实现与验证 + 蓝湖 PRD 需求获取插件
-- `api-tool`：Apifox / API 方法生成插件
-- `work-tool`：工作台工具（如 Jira 工时周报）
-- `obsidian-knowledge-tool`：受治理的 Obsidian 知识库 MCP 与 Skill
+- `seo`：SEO 工作流插件
+- `ui-or-prd`：Figma / UI 实现与验证 + 蓝湖 PRD 需求获取插件
+- `api`：Apifox / API 方法生成插件
+- `work`：工作台工具（如 Jira 工时周报）
+- `obsidian-knowledge`：受治理的 Obsidian 知识库 MCP 与 Skill
 
 ## 仓库结构
 
 ```text
-front-skills/
+Flame-Skills/
   ├── .claude-plugin/
   │   └── marketplace.json              # 市场目录，用户添加 marketplace 后从这里发现插件
   └── plugins/
-      ├── seo-tool/
+      ├── seo/
       │   ├── .claude-plugin/plugin.json
       │   └── skills/seo-framework/SKILL.md
-      ├── ui-or-prd-tool/
+      ├── ui-or-prd/
       │   ├── .claude-plugin/plugin.json
       │   └── skills/
       │       ├── figma-ui-workflow/SKILL.md
       │       └── lanhu-requirements/SKILL.md
-      └── api-tool/
+      ├── api/
+      │   ├── .claude-plugin/plugin.json
+      │   └── skills/apifox-api-methods/SKILL.md
+      ├── work/
+      │   ├── .claude-plugin/plugin.json
+      │   └── skills/
+      └── obsidian-knowledge/
           ├── .claude-plugin/plugin.json
-          └── skills/apifox-api-methods/SKILL.md
+          ├── .mcp.json
+          └── skills/
 ```
 
 ## 安装方式
@@ -43,9 +50,11 @@ front-skills/
 按需安装插件：
 
 ```text
-/plugin install seo-tool@flame-skills
-/plugin install ui-or-prd-tool@flame-skills
-/plugin install api-tool@flame-skills
+/plugin install seo@flame-skills
+/plugin install ui-or-prd@flame-skills
+/plugin install api@flame-skills
+/plugin install work@flame-skills
+/plugin install obsidian-knowledge@flame-skills
 ```
 
 安装后执行：
@@ -57,10 +66,10 @@ front-skills/
 然后即可使用：
 
 ```text
-/seo-tool:seo-framework
-/ui-or-prd-tool:figma-ui-workflow
-/ui-or-prd-tool:lanhu-requirements
-/api-tool:apifox-api-methods
+/seo:seo-framework
+/ui-or-prd:figma-ui-workflow
+/ui-or-prd:lanhu-requirements
+/api:apifox-api-methods
 ```
 
 ### 方式二：本地开发测试
@@ -68,45 +77,47 @@ front-skills/
 在本仓库根目录运行 Claude Code，可单独加载任意插件：
 
 ```bash
-claude --plugin-dir ./plugins/seo-tool
-claude --plugin-dir ./plugins/ui-or-prd-tool
-claude --plugin-dir ./plugins/api-tool
+claude --plugin-dir ./plugins/seo
+claude --plugin-dir ./plugins/ui-or-prd
+claude --plugin-dir ./plugins/api
 ```
 
-也可以一次加载三个：
+也可以一次加载多个：
 
 ```bash
-claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --plugin-dir ./plugins/api-tool
+claude --plugin-dir ./plugins/seo --plugin-dir ./plugins/ui-or-prd --plugin-dir ./plugins/api
 ```
 
 进入 Claude Code 后测试：
 
 ```text
-/seo-tool:seo-framework
-/ui-or-prd-tool:figma-ui-workflow
-/ui-or-prd-tool:lanhu-requirements
-/api-tool:apifox-api-methods
+/seo:seo-framework
+/ui-or-prd:figma-ui-workflow
+/ui-or-prd:lanhu-requirements
+/api:apifox-api-methods
 ```
 
 ### 方式三：本地市场测试
 
-如果还没推送到 GitLab，可以从本地路径添加市场：
+可以从本地路径添加市场：
 
 ```text
 /plugin marketplace add D:/jcCode/AI_project/front-skills
-/plugin install seo-tool@flame-skills
-/plugin install ui-or-prd-tool@flame-skills
-/plugin install api-tool@flame-skills
+/plugin install seo@flame-skills
+/plugin install ui-or-prd@flame-skills
+/plugin install api@flame-skills
 ```
 
 ## 已包含插件
 
 | Plugin | Skill | 用途 |
 | --- | --- | --- |
-| `seo-tool` | `seo-framework` | SEO metadata、可爬链接、H1、NuxtImg、alt、分页、canonical、结构化数据等 SEO 逻辑实现/审查。 |
-| `ui-or-prd-tool` | `figma-ui-workflow` | Figma 设计稿获取、UI 实现、视觉验证、Playwright 自查工作流。 |
-| `ui-or-prd-tool` | `lanhu-requirements` | 从蓝湖获取产品需求、设计说明或 Axure 原型，并整理为需求上下文。 |
-| `api-tool` | `apifox-api-methods` | 从 Apifox MCP 的接口定义生成前端 API 方法、TypeScript 类型、mock 数据。 |
+| `seo` | `seo-framework` | SEO metadata、可爬链接、H1、NuxtImg、alt、分页、canonical、结构化数据等 SEO 逻辑实现/审查。 |
+| `ui-or-prd` | `figma-ui-workflow` | Figma 设计稿获取、UI 实现、视觉验证、Playwright 自查工作流。 |
+| `ui-or-prd` | `lanhu-requirements` | 从蓝湖获取产品需求、设计说明或 Axure 原型，并整理为需求上下文。 |
+| `api` | `apifox-api-methods` | 从 Apifox MCP 的接口定义生成前端 API 方法、TypeScript 类型、mock 数据。 |
+| `work` | （见插件 skills） | 工作台相关能力，如 Jira 工时周报。 |
+| `obsidian-knowledge` | `obsidian-knowledge-governance` / `conversation-knowledge-triage` | 受治理的 Obsidian 知识库 MCP 与会话知识评判。 |
 
 ## 添加新的插件或 Skill
 
@@ -127,13 +138,13 @@ claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --p
 
 ## 发布更新
 
-推送到 GitLab 后，已添加该 marketplace 的用户可以执行：
+推送到 GitHub 后，已添加该 marketplace 的用户可以执行：
 
 ```text
 /plugin marketplace update flame-skills
-/plugin update seo-tool@flame-skills
-/plugin update ui-or-prd-tool@flame-skills
-/plugin update api-tool@flame-skills
+/plugin update seo@flame-skills
+/plugin update ui-or-prd@flame-skills
+/plugin update api@flame-skills
 /reload-plugins
 ```
 
@@ -141,6 +152,6 @@ claude --plugin-dir ./plugins/seo-tool --plugin-dir ./plugins/ui-or-prd-tool --p
 
 - 这是 Claude Code 插件/市场结构，不是网页形式的“插件市场”。
 - Skill 作为插件安装后会自动带命名空间，避免和其他插件或项目本地 Skill 冲突。
-- `ui-or-prd-tool` 同时承载 UI 设计稿工作流和 PRD/蓝湖需求获取工作流。
-- 拆成 `seo-tool`、`ui-or-prd-tool`、`api-tool` 后，用户可以按需安装，而不是一次安装全部前端 Skill。
-
+- `ui-or-prd` 同时承载 UI 设计稿工作流和 PRD/蓝湖需求获取工作流。
+- 拆成独立插件后，用户可以按需安装，而不是一次安装全部 Skill。
+- 旧名 `*-tool` 已通过 `marketplace.json` 的 `renames` 映射到新名（需 Claude Code v2.1.193+）。

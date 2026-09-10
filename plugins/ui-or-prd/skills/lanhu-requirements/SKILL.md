@@ -77,7 +77,7 @@ lanhu_get_ai_analyze_page_result(
 **如果本地 MCP 初始化失败：**
 
 1. 检查 Python 版本 ≥ 3.10
-2. 检查 `plugins/ui-or-prd-tool/mcp/lanhu-mcp/.env` 中 `LANHU_COOKIE` 是否已配置
+2. 检查 `plugins/ui-or-prd/mcp/lanhu-mcp/.env` 中 `LANHU_COOKIE` 是否已配置
 3. 检查依赖：`pip install -r requirements.txt`
 4. Cookie 未配置 → 引导用户提供蓝湖 Cookie（敏感信息），由你代为写入插件目录下 `.env`
 
