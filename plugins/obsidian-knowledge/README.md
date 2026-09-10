@@ -6,7 +6,7 @@
 - MCP 服务负责强制目录、Properties、内容哈希和禁止覆盖规则。
 - Obsidian Local REST API 负责连接正在运行的 Obsidian Vault。
 
-当前版本 `0.4.0`，已登记到本仓库插件市场 `flame-skills`。
+当前版本 `0.4.2`，已登记到本仓库插件市场 `flame-skills`。
 
 ## 前置条件
 
@@ -15,7 +15,16 @@
 3. 在 Local REST API 设置中确认 URL 和 API Key。
 4. 安装 Node.js 20 或更高版本。
 
-## 本地加载
+## 双端配置（勿混用占位符）
+
+| 客户端 | Manifest | MCP 配置 | 密钥占位符 |
+| --- | --- | --- | --- |
+| Claude Code | `.claude-plugin/plugin.json` | `.mcp.json` | `${user_config.*}` |
+| Cursor | `.cursor-plugin/plugin.json` | `mcp.json`（已 pin） | `${OBSIDIAN_API_*}`（`variables`） |
+
+两套文件并存；Cursor 通过 `mcpServers: "./mcp.json"` 钉死，避免误加载 Claude 的 `.mcp.json`。
+
+## Claude Code 本地加载
 
 在本仓库根目录执行：
 
@@ -31,16 +40,30 @@ claude --plugin-dir ./plugins/obsidian-knowledge
 
 API Key 通过插件的敏感 `userConfig` 保存，不写入仓库。
 
-## Cursor 手动接入
+## Cursor 接入
 
-Cursor 若不通过插件加载，可在自己的 `mcp.json` 中启动
-`mcp/obsidian-knowledge-mcp/dist/index.js`，并通过本机环境变量提供：
+### 推荐：插件 + variables
+
+1. 安装 / 更新 `obsidian-knowledge`（Flame-Skills / Cursor marketplace）。
+2. 打开 **Customize → Plugins → obsidian-knowledge → Configure**（或 Dashboard → Plugins → Configure）。
+3. 填写：
+   - `OBSIDIAN_API_URL`（默认 `https://127.0.0.1:27124`）
+   - `OBSIDIAN_API_KEY`
+   - `OBSIDIAN_ALLOW_INSECURE_TLS`（本机自签证书建议 `true`）
+4. Reload MCP。确认 Plugin 进程环境里已是真实值，而不是 `${user_config.*}` 或未替换的 `${OBSIDIAN_API_KEY}`。
+
+若同时存在 User 级 `~/.cursor/mcp.json` 与 Plugin 级 MCP，建议只保留一套，避免双份工具。
+
+### 备选：用户级 mcp.json
+
+不走插件 variables 时，可在 `~/.cursor/mcp.json` 启动
+`mcp/obsidian-knowledge-mcp/dist/index.js`，并用环境变量或 `${env:NAME}` 提供：
 
 - `OBSIDIAN_API_URL`
 - `OBSIDIAN_API_KEY`
 - `OBSIDIAN_ALLOW_INSECURE_TLS`
 
-不要把 API Key 写入项目内可提交的配置。
+不要把 API Key 写入可提交的项目配置。
 
 ## 数据保护
 

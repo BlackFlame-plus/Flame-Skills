@@ -15,7 +15,9 @@
 ```text
 Flame-Skills/
   ├── .claude-plugin/
-  │   └── marketplace.json              # 市场目录，用户添加 marketplace 后从这里发现插件
+  │   └── marketplace.json              # Claude Code 市场目录
+  ├── .cursor-plugin/
+  │   └── marketplace.json              # Cursor 原生市场（当前含 obsidian-knowledge variables）
   └── plugins/
       ├── seo/
       │   ├── .claude-plugin/plugin.json
@@ -32,10 +34,16 @@ Flame-Skills/
       │   ├── .claude-plugin/plugin.json
       │   └── skills/
       └── obsidian-knowledge/
-          ├── .claude-plugin/plugin.json
-          ├── .mcp.json
+          ├── .claude-plugin/plugin.json   # Claude userConfig
+          ├── .cursor-plugin/plugin.json   # Cursor variables
+          ├── .mcp.json                    # Claude MCP（${user_config.*}）
+          ├── mcp.json                     # Cursor MCP（${OBSIDIAN_API_*}）
           └── skills/
 ```
+
+> Cursor 使用 `obsidian-knowledge` 时：在 Plugins → Configure 填写
+> `OBSIDIAN_API_URL` / `OBSIDIAN_API_KEY`（不要指望 Claude 的 `userConfig`）。
+> 详见 `plugins/obsidian-knowledge/README.md`。
 
 ## 安装方式
 

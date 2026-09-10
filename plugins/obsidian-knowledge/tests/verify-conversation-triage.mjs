@@ -46,8 +46,16 @@ const skill = await read(
 const manifest = JSON.parse(
   await read(path.join(pluginRoot, ".claude-plugin", "plugin.json"))
 );
+const cursorManifest = JSON.parse(
+  await read(path.join(pluginRoot, ".cursor-plugin", "plugin.json"))
+);
+const cursorMcp = JSON.parse(await read(path.join(pluginRoot, "mcp.json")));
+const claudeMcp = JSON.parse(await read(path.join(pluginRoot, ".mcp.json")));
 const marketplace = await read(
   path.join(repoRoot, ".claude-plugin", "marketplace.json")
+);
+const cursorMarketplace = await read(
+  path.join(repoRoot, ".cursor-plugin", "marketplace.json")
 );
 
 for (const token of [
@@ -81,8 +89,21 @@ for (const boundary of ["40_Output/AI-Drafts", "never overwrite", "不得覆盖"
 assert.match(policy, /at least 6|至少 6 分/);
 assert.match(skill, /milestone|里程碑/);
 assert.match(skill, /conversation end|会话结束/);
-assert.equal(manifest.version, "0.4.0");
+assert.equal(manifest.version, "0.4.2");
+assert.equal(cursorManifest.version, "0.4.2");
+assert.equal(cursorManifest.mcpServers, "./mcp.json");
+assert.ok(cursorManifest.variables?.properties?.OBSIDIAN_API_KEY);
+assert.equal(
+  cursorMcp.mcpServers["obsidian-knowledge"].env.OBSIDIAN_API_KEY,
+  "${OBSIDIAN_API_KEY}"
+);
+assert.equal(
+  claudeMcp.mcpServers["obsidian-knowledge"].env.OBSIDIAN_API_KEY,
+  "${user_config.api_key}"
+);
 assert.ok(marketplace.includes('"obsidian-knowledge"'));
-assert.ok(marketplace.includes('"version": "0.4.0"'));
+assert.ok(marketplace.includes('"version": "0.4.2"'));
+assert.ok(cursorMarketplace.includes('"obsidian-knowledge"'));
+assert.ok(cursorMarketplace.includes('"version": "0.4.2"'));
 
 console.log("Conversation triage contract verified.");
