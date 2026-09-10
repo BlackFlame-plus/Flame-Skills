@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "obsidian-knowledge": {
+      "type": "stdio",
+      "command": "node",
+      "args": [
+        "${CLAUDE_PLUGIN_ROOT}/mcp/obsidian-knowledge-mcp/dist/index.js"
+      ],
+      "env": {
+        "OBSIDIAN_API_URL": "${user_config.api_url}",
+        "OBSIDIAN_API_KEY": "${user_config.api_key}",
+        "OBSIDIAN_ALLOW_INSECURE_TLS": "${user_config.allow_insecure_tls}"
+      }
+    }
+  }
+}

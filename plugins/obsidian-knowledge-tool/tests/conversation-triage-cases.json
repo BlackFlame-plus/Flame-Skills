@@ -1,0 +1,72 @@
+[
+  {
+    "id": "small-talk",
+    "conversation": "用户：你好。AI：你好，有什么可以帮你？用户：谢谢。",
+    "existingState": "",
+    "expected": "reject",
+    "candidateType": null
+  },
+  {
+    "id": "confirmed-decision",
+    "conversation": "用户确认：AI Brain 的正式知识只以 Markdown 为事实源，模型和客户端不得成为目录依赖。",
+    "existingState": "",
+    "expected": "save",
+    "candidateType": "decision"
+  },
+  {
+    "id": "mixed-conversation",
+    "conversation": "前半段是寒暄。随后用户确认每周五复盘 AI 草稿，并总结出 MoE 总参数决定主要权重容量、活动参数主要影响计算量。",
+    "existingState": "",
+    "expected": "save-multiple",
+    "candidateType": "knowledge"
+  },
+  {
+    "id": "duplicate-conclusion",
+    "conversation": "用户再次说明 Markdown 是 AI Brain 的唯一事实源。",
+    "existingState": "30_Knowledge 中已有完全相同且已复核的结论。",
+    "expected": "reject-duplicate",
+    "candidateType": "knowledge"
+  },
+  {
+    "id": "existing-note-new-evidence",
+    "conversation": "NVIDIA 官方文档新增证据：MoE 每个 Token 只激活部分专家，但仍维护全部专家参数。",
+    "existingState": "已有 MoE 选型知识笔记，但尚未引用 NVIDIA 官方文档。",
+    "expected": "save-update-review",
+    "candidateType": "knowledge"
+  },
+  {
+    "id": "conflicting-conclusion",
+    "conversation": "新测试显示当前备份无法恢复，与知识库中“备份已验证”的结论冲突。",
+    "existingState": "现有正式笔记记录备份恢复验证通过。",
+    "expected": "save-conflict-review",
+    "candidateType": "knowledge"
+  },
+  {
+    "id": "credential-present",
+    "conversation": "临时 API Key 是 sk-secret-example。稍后删除即可。",
+    "existingState": "",
+    "expected": "reject-secret",
+    "candidateType": null
+  },
+  {
+    "id": "vault-unavailable",
+    "conversation": "用户确认以后所有 AI 草稿必须记录实际模型名称。",
+    "existingState": "Vault 搜索和写入接口不可用。",
+    "expected": "report-unsaved",
+    "candidateType": null
+  },
+  {
+    "id": "multiple-candidates",
+    "conversation": "用户决定先接入 Cursor；每周五复盘；稳定偏好是不要保存完整聊天记录。",
+    "existingState": "",
+    "expected": "save-multiple",
+    "candidateType": "decision"
+  },
+  {
+    "id": "superseded-plan",
+    "conversation": "先计划使用本地 Ollama，随后用户明确放弃该方案，最终采用本地知识库加云端 AI。",
+    "existingState": "",
+    "expected": "reject-superseded-save-final",
+    "candidateType": "decision"
+  }
+]
