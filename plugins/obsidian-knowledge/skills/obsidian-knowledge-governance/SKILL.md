@@ -5,9 +5,18 @@ description: Governed workflow for capturing, validating, promoting, and archivi
 
 # Obsidian Knowledge Governance
 
-Use the `obsidian_*` MCP tools for every interaction with the managed vault.
-Never call the Local REST API directly or attempt unrestricted writes,
-overwrites, deletes, Obsidian commands, or attachment uploads.
+## MCP 铁律（不可跳过）
+
+**必须必须必须**使用本插件内置的 `obsidian_*` MCP 工具管理 vault。
+禁止跳过 MCP；禁止直连 Local REST API；禁止用 Shell/`Write`/`Edit`
+等任意旁路读写 vault。
+
+若 MCP 未配置、未启用、调用失败或缺少 `api_url` / `api_key`：
+**立刻向用户索要配置并停手**，不得自行猜测、硬编码密钥、改写路径绕过，
+也不得改用本地文件系统「凑合完成」。
+
+Never attempt unrestricted writes, overwrites, deletes, Obsidian commands,
+or attachment uploads outside these tools.
 
 ## Lifecycle
 

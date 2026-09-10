@@ -1,7 +1,7 @@
 {
   "name": "obsidian-knowledge",
   "description": "Governed knowledge-management tools for an Obsidian vault.",
-  "version": "0.4.0",
+  "version": "0.4.1",
   "author": {
     "name": "liuzhengri"
   },

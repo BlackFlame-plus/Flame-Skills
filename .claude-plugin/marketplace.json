@@ -2,7 +2,7 @@
   "$schema": "https://code.claude.com/schemas/plugin-marketplace.json",
   "name": "flame-skills",
   "description": "Flame Skills — Claude Code / Cursor plugin marketplace for workflow skills and tools.",
-  "version": "1.4.0",
+  "version": "1.4.1",
   "owner": {
     "name": "liuzhengri"
   },
@@ -62,8 +62,8 @@
       "name": "obsidian-knowledge",
       "displayName": "Obsidian Knowledge",
       "source": "./plugins/obsidian-knowledge",
-      "description": "受治理的 Obsidian 知识库 MCP 与 Skill：Inbox 采集、AI 草稿、Properties 校验、内容哈希晋升/归档，以及会话知识自动评判与达标自动晋升（v0.4.0）。依赖 Obsidian Local REST API。",
-      "version": "0.4.0",
+      "description": "受治理的 Obsidian 知识库 MCP 与 Skill：Inbox 采集、AI 草稿、Properties 校验、内容哈希晋升/归档，以及会话知识自动评判与达标自动晋升（v0.4.1：强制必须走内置 MCP，缺配置向用户索要，禁止旁路）。依赖 Obsidian Local REST API。",
+      "version": "0.4.1",
       "author": {
         "name": "liuzhengri"
       },
